@@ -1,44 +1,92 @@
-import { useEffect, useState } from "react";
-import { checkBackendHealth } from "./services/health";
+import {
+  BrowserRouter,
+  Navigate,
+  Route,
+  Routes,
+} from "react-router-dom";
 
-function App() {
-  const [backendStatus, setBackendStatus] = useState("Checking backend...");
+import Login from "./pages/Login";
+import Dashboard from "./pages/Dashboard";
 
-  useEffect(() => {
-    const checkHealth = async () => {
-      try {
-        const data = await checkBackendHealth();
+import ProtectedRoute from "./routes/ProtectedRoute";
+import Register from "./pages/Register";
+import VerifyEmail from "./pages/VerifyEmail";
 
-        if (data.success) {
-          setBackendStatus("Backend connected");
-        }
-      } catch (error) {
-        console.error("Backend connection failed:", error);
-        setBackendStatus("Backend unavailable");
-      }
-    };
-
-    checkHealth();
-  }, []);
-
+const App = () => {
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center px-6">
-      <div className="text-center">
-        <h1 className="text-5xl font-bold tracking-tight text-white">
-          COLLABSPHERE
-        </h1>
+    <BrowserRouter>
 
-        <p className="mt-4 text-slate-400">
-          Enterprise Real-Time Collaborative Workspace
-        </p>
+      <Routes>
 
-        <div className="mt-8 inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-4 py-2 text-sm text-emerald-400">
-          <span className="h-2 w-2 rounded-full bg-emerald-400" />
-          {backendStatus}
-        </div>
-      </div>
-    </div>
+        {/* ==========================
+            PUBLIC
+        ========================== */}
+
+        <Route
+          path="/login"
+          element={<Login />}
+        />
+
+        <Route
+          path="/register"
+          element={
+            <Register/>
+          }
+        />
+
+        <Route
+          path="/verify-email"
+          element={<VerifyEmail />}
+        />
+
+
+        {/* ==========================
+            PROTECTED
+        ========================== */}
+
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+
+
+        {/* ==========================
+            DEFAULT
+        ========================== */}
+
+        <Route
+          path="/"
+          element={
+            <Navigate
+              to="/dashboard"
+              replace
+            />
+          }
+        />
+
+
+        {/* ==========================
+            404
+        ========================== */}
+
+        <Route
+          path="*"
+          element={
+            <Navigate
+              to="/dashboard"
+              replace
+            />
+          }
+        />
+
+      </Routes>
+
+    </BrowserRouter>
   );
-}
+};
 
 export default App;
