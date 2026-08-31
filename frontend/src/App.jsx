@@ -13,6 +13,19 @@ import Dashboard from "./pages/Dashboard";
 
 import ProtectedRoute from "./routes/ProtectedRoute";
 import AppLayout from "./components/layout/AppLayout";
+import Workspaces from "./pages/Workspaces";
+import WorkspaceDetails from "./pages/WorkspaceDetails";
+import WorkspaceMembers from "./pages/WorkspaceMembers";
+import Projects from "./pages/Projects";
+import ProjectDetails from "./pages/ProjectDetails";
+import ProjectBoard from "./pages/ProjectBoard";
+import TaskDetails from "./pages/TaskDetails";
+import Tasks from "./pages/Tasks";
+import Members from "./pages/Members";
+import Documents from "./pages/Documents";
+import Files from "./pages/Files";
+import DocumentEditor from "./pages/DocumentEditor";
+import MyProjects from "./pages/MyProjects";
 
 
 const App = () => {
@@ -65,46 +78,92 @@ const App = () => {
           <Route
             path="/workspaces"
             element={
-              <PlaceholderPage
-                title="Workspaces"
-              />
+              <Workspaces/>
             }
+          />
+
+          <Route
+            path="/workspaces/:workspaceId"
+            element={<WorkspaceDetails />}
+          />
+
+          {/* <Route
+            path="/workspaces/:workspaceId/members"
+            element={<WorkspaceMembers />}
+          /> */}
+
+          <Route
+            path="/workspaces/:workspaceId/projects"
+            element={<Projects />}
           />
 
           <Route
             path="/projects"
-            element={
-              <PlaceholderPage
-                title="Projects"
-              />
-            }
+            element={<MyProjects />}
+          />
+
+          <Route
+            path="/workspaces/:workspaceId/projects/:projectId"
+            element={<ProjectDetails />}
+          />
+
+          <Route
+            path="/workspaces/:workspaceId/projects/:projectId/board"
+            element={<ProjectBoard />}
           />
 
           <Route
             path="/tasks"
-            element={
-              <PlaceholderPage
-                title="Tasks"
-              />
-            }
+            element={<Tasks />}
           />
+
+          <Route
+            path="/workspaces/:workspaceId/members"
+            element={<Members />}
+          />
+
+          {/* =====================================================
+              WORKSPACE DOCUMENTS
+          ===================================================== */}
 
           <Route
             path="/documents"
-            element={
-              <PlaceholderPage
-                title="Documents"
-              />
-            }
+            element={<Documents />}
           />
 
           <Route
+            path="/workspaces/:workspaceId/documents"
+            element={<Documents />}
+          />
+
+          <Route
+            path="/workspaces/:workspaceId/projects/:projectId/documents"
+            element={<Documents />}
+          />
+
+          <Route
+            path="/workspaces/:workspaceId/documents/:documentId"
+            element={<DocumentEditor />}
+          />
+
+
+          {/* =====================================================
+            FILES
+          ===================================================== */}
+
+          <Route
             path="/files"
-            element={
-              <PlaceholderPage
-                title="Files"
-              />
-            }
+            element={<Files />}
+          />
+
+          <Route
+            path="/workspaces/:workspaceId/files"
+            element={<Files />}
+          />
+
+          <Route
+            path="/workspaces/:workspaceId/projects/:projectId/files"
+            element={<Files />}
           />
 
           <Route

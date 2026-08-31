@@ -1,144 +1,166 @@
 import {
+  ArrowRight,
+  CalendarDays,
   FolderKanban,
-  ListTodo,
   Users,
   CheckCircle2,
+  ListTodo,
+  Plus,
 } from "lucide-react";
 
-import { useAuth } from "../context/AuthContext";
+import { Link } from "react-router-dom";
+
+import useDashboard from "../hooks/useDashboard";
+
+import DashboardStats from "../components/dashboard/DashboardStats";
+import ProjectOverview from "../components/dashboard/ProjectOverview";
+import UpcomingDeadlines from "../components/dashboard/UpcomingDeadlines";
+import DashboardSkeleton from "../components/dashboard/DashboardSkeleton";
+import TeamMembers from "../components/dashboard/TeamMembers";
 
 
 const Dashboard = () => {
 
-  const { user } = useAuth();
+  const {
+    loading,
+    error,
+    refresh,
+    stats,
+    projects,
+    deadlines,
+    members,
+  } = useDashboard();
 
 
-  const stats = [
-    {
-      title: "Active Projects",
-      value: "8",
-      icon: FolderKanban,
-    },
-    {
-      title: "Pending Tasks",
-      value: "24",
-      icon: ListTodo,
-    },
-    {
-      title: "Team Members",
-      value: "12",
-      icon: Users,
-    },
-    {
-      title: "Due Today",
-      value: "5",
-      icon: CheckCircle2,
-    },
-  ];
+  // ==========================================
+  // LOADING
+  // ==========================================
+
+  if (loading) {
+    return <DashboardSkeleton />;
+  }
+
+
+  // ==========================================
+  // ERROR
+  // ==========================================
+
+  if (error) {
+    return (
+      <main className="mx-auto flex min-h-[calc(100vh-8rem)] max-w-[1600px] items-center justify-center px-5">
+
+        <div className="rounded-xl border border-red-500/20 bg-red-500/5 px-8 py-10 text-center">
+
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-500/10 text-red-400">
+            <CheckCircle2 size={22} />
+          </div>
+
+          <h2 className="mt-4 text-lg font-semibold text-white">
+            Unable to load dashboard
+          </h2>
+
+          <p className="mt-2 text-sm text-slate-500">
+            {error}
+          </p>
+
+          <button
+            onClick={refresh}
+            className="mt-5 rounded-lg bg-indigo-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-400"
+          >
+            Try again
+          </button>
+
+        </div>
+
+      </main>
+    );
+  }
 
 
   return (
-    <div className="mx-auto max-w-[1600px] px-5 py-8 sm:px-8 lg:px-10">
+    <main className="mx-auto max-w-[1600px] px-5 py-7 sm:px-8 lg:px-10">
 
-      {/* =====================================
-          WELCOME
-      ====================================== */}
+      {/* ==================================================
+          PAGE HEADER
+      ================================================== */}
 
-      <div className="mb-8">
+      <section className="mb-8">
 
-        <p className="text-sm text-slate-500">
-          Dashboard
-        </p>
+        <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
 
-        <h2 className="mt-1 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
-          Good morning,{" "}
-          <span className="text-indigo-400">
-            {user?.name?.split(" ")[0] || "there"}
-          </span>{" "}
-          👋
-        </h2>
+          <div>
 
-        <p className="mt-2 text-sm text-slate-400">
-          Here's what's happening across your workspace.
-        </p>
+            <p className="text-xs font-medium uppercase tracking-wider text-indigo-400">
+              Overview
+            </p>
 
-      </div>
+            <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+              Dashboard
+            </h1>
 
+            <p className="mt-2 text-sm text-slate-500">
+              Overview of your workspace
+            </p>
 
-      {/* =====================================
-          STATISTICS
-      ====================================== */}
-
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-
-        {stats.map((stat) => {
-
-          const Icon = stat.icon;
-
-          return (
-            <div
-              key={stat.title}
-              className="rounded-xl border border-slate-800 bg-slate-900/60 p-5"
-            >
-
-              <div className="flex items-center justify-between">
-
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-400">
-                  <Icon size={19} />
-                </div>
-
-              </div>
-
-              <p className="mt-5 text-sm text-slate-500">
-                {stat.title}
-              </p>
-
-              <p className="mt-1 text-2xl font-semibold text-white">
-                {stat.value}
-              </p>
-
-            </div>
-          );
-
-        })}
-
-      </div>
+          </div>
 
 
-      {/* =====================================
-          CONTENT PLACEHOLDER
-      ====================================== */}
+          <Link
+            to="/workspaces"
+            className="inline-flex w-fit items-center gap-2 rounded-lg border border-slate-800 bg-slate-900/60 px-4 py-2.5 text-sm font-medium text-slate-300 transition hover:border-slate-700 hover:bg-slate-900 hover:text-white"
+          >
+            <FolderKanban size={16} />
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+            View workspaces
 
-        <div className="min-h-72 rounded-xl border border-slate-800 bg-slate-900/40 p-6">
+            <ArrowRight size={15} />
 
-          <h3 className="font-semibold text-white">
-            Active Projects
-          </h3>
-
-          <p className="mt-2 text-sm text-slate-500">
-            Project overview will be added here.
-          </p>
+          </Link>
 
         </div>
 
+      </section>
 
-        <div className="min-h-72 rounded-xl border border-slate-800 bg-slate-900/40 p-6">
 
-          <h3 className="font-semibold text-white">
-            Upcoming Deadlines
-          </h3>
+      {/* ==================================================
+          STATS
+      ================================================== */}
 
-          <p className="mt-2 text-sm text-slate-500">
-            Upcoming tasks and deadlines will appear here.
-          </p>
+      <DashboardStats
+        stats={stats}
+      />
 
-        </div>
 
-      </div>
+      {/* ==================================================
+          PROJECTS + DEADLINES
+      ================================================== */}
 
-    </div>
+      <section className="mt-6 grid gap-6 xl:grid-cols-[1.6fr_1fr]">
+
+        <ProjectOverview
+          projects={projects}
+        />
+
+        <UpcomingDeadlines
+          deadlines={deadlines}
+        />
+
+      </section>
+
+
+      {/* ==================================================
+          TEAM MEMBERS
+      ================================================== */}
+
+      <section className="mt-6">
+
+        <TeamMembers
+          members={members}
+        />
+
+      </section>
+
+    </main>
   );
 };
 
