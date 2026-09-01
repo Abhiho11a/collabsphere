@@ -134,7 +134,6 @@ const getProjectMessages = async (req, res) => {
       await Message.find({
         project: projectId,
         workspace: workspaceId,
-        isDeleted: false,
       })
         .populate(
           "sender",
@@ -364,10 +363,34 @@ const sendProjectMessage = async (
       "name email avatar"
     );
 
+    // -------------------------------------------------
+    // Populate reply message if applicable
+    // -------------------------------------------------
+
     if (message.replyTo) {
       await message.populate(
         "replyTo",
         "content sender createdAt"
+      );
+    }
+
+    // -------------------------------------------------
+    // GET SOCKET.IO INSTANCE
+    // -------------------------------------------------
+
+    const io =
+      req.app.get("io");
+
+    // -------------------------------------------------
+    // EMIT REAL-TIME MESSAGE
+    // -------------------------------------------------
+
+    if (io) {
+      io.to(
+        `project:${projectId}`
+      ).emit(
+        "new-message",
+        message
       );
     }
 
@@ -399,28 +422,20 @@ const sendProjectMessage = async (
 // /api/messages/:messageId
 // =====================================================
 
-const editMessage = async (
-  req,
-  res
-) => {
+const editMessage = async (req, res) => {
   try {
-    const { messageId } =
-      req.params;
+    const { messageId } = req.params;
 
-    const userId =
-      req.user._id;
+    const userId = req.user._id;
 
-    const { content } =
-      req.body;
+    const { content } = req.body;
 
     // -------------------------------------------------
     // Validate ID
     // -------------------------------------------------
 
     if (
-      !mongoose.Types.ObjectId.isValid(
-        messageId
-      )
+      !mongoose.Types.ObjectId.isValid(messageId)
     ) {
       return res.status(400).json({
         success: false,
@@ -476,29 +491,58 @@ const editMessage = async (
     }
 
     // -------------------------------------------------
-    // Update
+    // UPDATE MESSAGE
     // -------------------------------------------------
 
-    message.content =
-      content.trim();
+    message.content = content.trim();
 
     message.isEdited = true;
 
     await message.save();
+
+    // -------------------------------------------------
+    // POPULATE SENDER
+    // -------------------------------------------------
 
     await message.populate(
       "sender",
       "name email avatar"
     );
 
+    // -------------------------------------------------
+    // GET SOCKET.IO INSTANCE
+    // -------------------------------------------------
+
+    const io = req.app.get("io");
+
+    // -------------------------------------------------
+    // EMIT REAL-TIME UPDATE
+    // -------------------------------------------------
+
+    if (io) {
+      io.to(
+        `project:${message.project}`
+      ).emit(
+        "message-updated",
+        message
+      );
+    }
+
+    // -------------------------------------------------
+    // RESPONSE
+    // -------------------------------------------------
+
     return res.status(200).json({
       success: true,
+
       message:
         "Message updated successfully",
+
       data: message,
     });
 
   } catch (error) {
+
     console.error(
       "Edit message error:",
       error
@@ -511,7 +555,6 @@ const editMessage = async (
     });
   }
 };
-
 
 // =====================================================
 // DELETE MESSAGE
@@ -564,7 +607,7 @@ const deleteMessage = async (
     }
 
     // -------------------------------------------------
-    // ONLY MESSAGE CREATOR FOR NOW
+    // ONLY MESSAGE CREATOR CAN DELETE
     // -------------------------------------------------
 
     if (
@@ -579,13 +622,39 @@ const deleteMessage = async (
     }
 
     // -------------------------------------------------
-    // Soft delete
+    // SOFT DELETE
     // -------------------------------------------------
 
     message.isDeleted = true;
     message.content = "";
 
     await message.save();
+
+    // -------------------------------------------------
+    // GET SOCKET.IO INSTANCE
+    // -------------------------------------------------
+
+    const io =
+      req.app.get("io");
+
+    // -------------------------------------------------
+    // EMIT REAL-TIME DELETE EVENT
+    // -------------------------------------------------
+
+    if (io) {
+      io.to(
+        `project:${message.project}`
+      ).emit(
+        "message-deleted",
+        {
+          messageId: message._id,
+        }
+      );
+    }
+
+    // -------------------------------------------------
+    // RESPONSE
+    // -------------------------------------------------
 
     return res.status(200).json({
       success: true,
@@ -594,6 +663,7 @@ const deleteMessage = async (
     });
 
   } catch (error) {
+
     console.error(
       "Delete message error:",
       error

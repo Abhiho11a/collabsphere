@@ -192,7 +192,7 @@ const login = async (req, res) => {
         "Unknown",
       lastUsedAt: new Date(),
       expiresAt: new Date(
-        Date.now() + 7 * 24 * 60 * 60 * 1000
+        Date.now() + 18 * 24 * 60 * 60 * 1000
       ),
     });
 

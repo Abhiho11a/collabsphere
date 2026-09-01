@@ -27,6 +27,7 @@ import Files from "./pages/Files";
 import DocumentEditor from "./pages/DocumentEditor";
 import MyProjects from "./pages/MyProjects";
 import ProjectChat from "./pages/ProjectChat";
+import Settings from "./pages/Settings";
 
 
 const App = () => {
@@ -211,9 +212,7 @@ const App = () => {
           <Route
             path="/settings"
             element={
-              <PlaceholderPage
-                title="Settings"
-              />
+              <Settings/>
             }
           />
 

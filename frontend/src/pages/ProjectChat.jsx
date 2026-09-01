@@ -23,6 +23,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 
 import { useAuth } from "../context/AuthContext";
+import { socket } from "../services/socket";
 
 
 // =====================================================
@@ -90,6 +91,188 @@ const ProjectChat = () => {
   const textareaRef =
     useRef(null);
 
+
+  // SOCKET.IO
+  // Connect, join project and listen for real-time events
+  // =====================================================
+
+  useEffect(() => {
+    if (!projectId) {
+      return;
+    }
+
+    // -------------------------------------------------
+    // CONNECT TO SOCKET
+    // -------------------------------------------------
+
+    socket.connect();
+
+    // -------------------------------------------------
+    // JOIN PROJECT ROOM
+    // -------------------------------------------------
+
+    socket.emit("join-project", {
+      projectId,
+    });
+
+    // =================================================
+    // NEW MESSAGE
+    // =================================================
+
+    const handleNewMessage = (message) => {
+      setMessages((prev) => {
+        const messageId =
+          message._id ||
+          message.id;
+
+        const alreadyExists =
+          prev.some(
+            (item) =>
+              String(
+                item._id ||
+                item.id
+              ) ===
+              String(messageId)
+          );
+
+        if (alreadyExists) {
+          return prev;
+        }
+
+        return [
+          ...prev,
+          message,
+        ];
+      });
+
+      // Scroll after React updates the messages
+      setTimeout(() => {
+        scrollToBottom("smooth");
+      }, 50);
+    };
+
+    // =================================================
+    // MESSAGE UPDATED
+    // =================================================
+
+    const handleMessageUpdated = (updatedMessage) => {
+      setMessages((prev) =>
+        prev.map((message) => {
+          const messageId =
+            message._id ||
+            message.id;
+
+          const updatedMessageId =
+            updatedMessage?._id ||
+            updatedMessage?.id;
+
+          if (
+            String(messageId) ===
+            String(updatedMessageId)
+          ) {
+            // Keep the existing populated sender if the socket
+            // payload contains only the sender ObjectId.
+            return {
+              ...message,
+              ...updatedMessage,
+              sender:
+                updatedMessage?.sender &&
+                typeof updatedMessage.sender === "object"
+                  ? updatedMessage.sender
+                  : message.sender,
+              user:
+                updatedMessage?.user &&
+                typeof updatedMessage.user === "object"
+                  ? updatedMessage.user
+                  : message.user,
+            };
+          }
+
+          return message;
+        })
+      );
+    };
+
+    // =================================================
+    // MESSAGE DELETED
+    // =================================================
+
+    const handleMessageDeleted = (data) => {
+      setMessages((prev) =>
+        prev.map((message) => {
+          const messageId =
+            message._id ||
+            message.id;
+
+          if (
+            String(messageId) ===
+            String(data?.messageId)
+          ) {
+            // Soft-delete in the UI. Do NOT remove the message.
+            // Keep sender/createdAt so both sides can see who
+            // deleted the message after a real-time update.
+            return {
+              ...message,
+              isDeleted: true,
+              content: "",
+            };
+          }
+
+          return message;
+        })
+      );
+    };
+
+    // =================================================
+    // REGISTER SOCKET LISTENERS
+    // =================================================
+
+    socket.on(
+      "new-message",
+      handleNewMessage
+    );
+
+    socket.on(
+      "message-updated",
+      handleMessageUpdated
+    );
+
+    socket.on(
+      "message-deleted",
+      handleMessageDeleted
+    );
+
+    // =================================================
+    // CLEANUP
+    // =================================================
+
+    return () => {
+      // Leave project room
+      socket.emit("leave-project", {
+        projectId,
+      });
+
+      // Remove listeners
+      socket.off(
+        "new-message",
+        handleNewMessage
+      );
+
+      socket.off(
+        "message-updated",
+        handleMessageUpdated
+      );
+
+      socket.off(
+        "message-deleted",
+        handleMessageDeleted
+      );
+
+      // Disconnect socket
+      socket.disconnect();
+    };
+
+  }, [projectId]);
 
   // ===================================================
   // CURRENT USER ID
@@ -340,6 +523,10 @@ const ProjectChat = () => {
           response?.data?.messages ||
           [];
 
+        // IMPORTANT:
+        // The backend GET endpoint must return soft-deleted
+        // messages too (with isDeleted: true). We intentionally
+        // keep them in state so they remain visible after refresh.
         setMessages(
           Array.isArray(
             fetchedMessages
@@ -427,8 +614,7 @@ const ProjectChat = () => {
       // GET MESSAGE FROM BACKEND
       // ==========================================
 
-      const backendMessage =
-        response?.data?.message;
+      const backendMessage = response?.data?.data;
 
       // ==========================================
       // GET SENDER FROM BACKEND RESPONSE
@@ -539,13 +725,50 @@ const ProjectChat = () => {
       };
 
       // ==========================================
-      // ADD MESSAGE IMMEDIATELY TO UI
+      // RECONCILE MESSAGE IN LOCAL STATE
       // ==========================================
+      //
+      // Socket.IO normally delivers the new message. This
+      // fallback makes the UI immediate even if the socket
+      // event is delayed. It also prevents duplicates.
+      //
+      if (backendMessage) {
+        setMessages((prev) => {
+          const newMessageId =
+            newMessage._id ||
+            newMessage.id;
 
-      setMessages((prev) => [
-        ...prev,
-        newMessage,
-      ]);
+          const exists = prev.some(
+            (message) =>
+              String(
+                message._id ||
+                message.id
+              ) === String(newMessageId)
+          );
+
+          if (exists) {
+            return prev.map((message) => {
+              const messageId =
+                message._id ||
+                message.id;
+
+              if (
+                String(messageId) !==
+                String(newMessageId)
+              ) {
+                return message;
+              }
+
+              return {
+                ...message,
+                ...newMessage,
+              };
+            });
+          }
+
+          return [...prev, newMessage];
+        });
+      }
 
       // ==========================================
       // CLEAR INPUT
@@ -651,14 +874,24 @@ const ProjectChat = () => {
         );
 
         setMessages((prev) =>
-          prev.filter(
-            (message) =>
-              String(
-                message._id ||
-                  message.id
-              ) !==
+          prev.map((message) => {
+            const currentMessageId =
+              message._id ||
+              message.id;
+
+            if (
+              String(currentMessageId) ===
               String(messageId)
-          )
+            ) {
+              return {
+                ...message,
+                isDeleted: true,
+                content: "",
+              };
+            }
+
+            return message;
+          })
         );
 
         setOpenMenu(null);
@@ -684,6 +917,10 @@ const ProjectChat = () => {
 
   const startEdit =
     (message) => {
+
+      if (!message || message.isDeleted) {
+        return;
+      }
 
       setEditingMessage(
         message
@@ -933,25 +1170,24 @@ const ProjectChat = () => {
 
               {isEditing ? (
 
+                // =====================================================
+                // EDIT MESSAGE
+                // =====================================================
+
                 <div className="w-full min-w-[260px] max-w-[600px]">
 
                   <textarea
                     value={editText}
                     onChange={(event) =>
-                      setEditText(
-                        event.target.value
-                      )
+                      setEditText(event.target.value)
                     }
                     onKeyDown={(event) => {
-                      if (
-                        event.key === "Escape"
-                      ) {
+                      if (event.key === "Escape") {
                         cancelEdit();
                       }
 
                       if (
-                        event.key ===
-                          "Enter" &&
+                        event.key === "Enter" &&
                         !event.shiftKey
                       ) {
                         event.preventDefault();
@@ -967,9 +1203,7 @@ const ProjectChat = () => {
 
                     <button
                       type="button"
-                      onClick={
-                        cancelEdit
-                      }
+                      onClick={cancelEdit}
                       className="rounded-lg px-3 py-1.5 text-xs text-slate-400 transition hover:bg-slate-800 hover:text-slate-200"
                     >
                       Cancel
@@ -984,18 +1218,18 @@ const ProjectChat = () => {
                       }
                       className="flex items-center gap-1.5 rounded-lg bg-indigo-500 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-indigo-400 disabled:cursor-not-allowed disabled:opacity-50"
                     >
+
                       {savingEdit ? (
                         <Loader2
                           size={13}
                           className="animate-spin"
                         />
                       ) : (
-                        <Check
-                          size={13}
-                        />
+                        <Check size={13} />
                       )}
 
                       Save
+
                     </button>
 
                   </div>
@@ -1004,34 +1238,42 @@ const ProjectChat = () => {
 
               ) : (
 
+                // =====================================================
+                    // NORMAL / DELETED MESSAGE
+                // ===================================================== 
+
                 <div
                   className={`relative rounded-2xl border px-4 py-3 ${
-                    own
-                      ? "rounded-tr-md border-indigo-500/30 bg-indigo-500/15"
-                      : "rounded-tl-md border-slate-800 bg-slate-900"
+                    message.isDeleted
+                      ? own
+                        ? "rounded-tr-md border-slate-700/70 bg-slate-900/70"
+                        : "rounded-tl-md border-slate-800/70 bg-slate-900/50"
+                      : own
+                        ? "rounded-tr-md border-indigo-500/30 bg-indigo-500/15"
+                        : "rounded-tl-md border-slate-800 bg-slate-900"
                   }`}
                 >
-
-                  <p
-                    className={`whitespace-pre-wrap break-words text-sm leading-6 ${
-                      own
-                        ? "text-indigo-50"
-                        : "text-slate-300"
-                    }`}
-                  >
-                    {message.content}
-                  </p>
-
+                  {message.isDeleted ? (
+                    <div className="text-sm italic text-slate-500">
+                      {own
+                        ? "You deleted this message"
+                        : "This message was deleted"}
+                    </div>
+                  ) : (
+                    <div className="whitespace-pre-wrap break-words text-sm text-slate-200">
+                      {message.content}
+                    </div>
+                  )}
                 </div>
 
               )}
-
 
               {/* =================================
                   MESSAGE ACTIONS
               ================================= */}
 
               {own &&
+                !message.isDeleted &&
                 !isEditing && (
                   <div
                     className={`relative mt-1 opacity-0 transition group-hover:opacity-100 ${
