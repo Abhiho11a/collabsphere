@@ -26,6 +26,7 @@ import Documents from "./pages/Documents";
 import Files from "./pages/Files";
 import DocumentEditor from "./pages/DocumentEditor";
 import MyProjects from "./pages/MyProjects";
+import ProjectChat from "./pages/ProjectChat";
 
 
 const App = () => {
@@ -167,12 +168,8 @@ const App = () => {
           />
 
           <Route
-            path="/chat"
-            element={
-              <PlaceholderPage
-                title="Chat"
-              />
-            }
+            path="/workspaces/:workspaceId/projects/:projectId/chat"
+            element={<ProjectChat />}
           />
 
           <Route

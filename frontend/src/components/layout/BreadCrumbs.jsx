@@ -371,6 +371,49 @@ const Breadcrumbs = () => {
 
 
     // ----------------------------------------
+    // PROJECT CHAT
+    // ----------------------------------------
+
+    if (
+      pathname ===
+      `/workspaces/${workspaceId}/projects/${projectId}/chat`
+    ) {
+
+      return [
+        {
+          label: "Workspaces",
+          path: "/workspaces",
+        },
+
+        {
+          label: workspaceName,
+          path:
+            `/workspaces/${workspaceId}`,
+        },
+
+        {
+          label: "Projects",
+          path:
+            `/workspaces/${workspaceId}/projects`,
+        },
+
+        {
+          label: projectName,
+          path:
+            `/workspaces/${workspaceId}/projects/${projectId}`,
+        },
+
+        {
+          label: "Project Chat",
+          path:
+            `/workspaces/${workspaceId}/projects/${projectId}/chat`,
+        },
+      ];
+
+    }
+
+
+    // ----------------------------------------
     // DEFAULT
     // ----------------------------------------
 

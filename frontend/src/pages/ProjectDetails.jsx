@@ -15,6 +15,7 @@ import {
   RefreshCw,
   AlertCircle,
   FileText,
+  MessageCircle,
 } from "lucide-react";
 
 import {
@@ -961,11 +962,15 @@ const ProjectDetails = () => {
           <div className="flex flex-wrap items-center gap-2">
 
             <button
-              type="button"
-              className="inline-flex items-center gap-2 rounded-lg border border-slate-700 px-4 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-slate-800"
+              onClick={() =>
+                navigate(
+                  `/workspaces/${workspaceId}/projects/${projectId}/chat`
+                )
+              }
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-700 px-4 py-2.5 text-sm font-medium text-slate-300 transition hover:border-slate-600 hover:bg-slate-900 hover:text-white"
             >
-              <MoreHorizontal size={17} />
-              More
+              <MessageCircle size={17} />
+              Chat
             </button>
 
 

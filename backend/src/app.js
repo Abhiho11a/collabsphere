@@ -14,6 +14,7 @@ const documentRoutes = require("./routes/documentRoutes");
 const taskRoutes = require("./routes/taskRoutes");
 const workspaceFileRoutes = require("./routes/workspaceFileRoutes");
 const projectActivityRoutes = require("./routes/projectActivityRoutes");
+const messageRoutes = require("./routes/messageRoutes");
 
 const app = express();
 
@@ -72,6 +73,8 @@ app.use(
   "/api/tasks",
   taskRoutes
 );
+
+app.use("/api", messageRoutes);
 
 
 module.exports = app;
