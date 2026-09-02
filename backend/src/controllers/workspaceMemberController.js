@@ -1,16 +1,14 @@
 const Workspace = require("../models/Workspace");
 const WorkspaceMember = require("../models/WorkspaceMember");
 const User = require("../models/User");
+const OrganizationMember = require("../models/OrganizationMember");
 
 
 // ========================================
 // HELPER: CHECK WORKSPACE ACCESS
 // ========================================
 
-const getMembership = async (
-  workspaceId,
-  userId
-) => {
+const getMembership = async (workspaceId, userId) => {
   return WorkspaceMember.findOne({
     workspace: workspaceId,
     user: userId,
@@ -228,6 +226,25 @@ const addWorkspaceMember = async (
       });
     }
 
+    // ------------------------------------
+    // Check organization membership
+    // ------------------------------------
+
+    const organizationMembership =
+      await OrganizationMember.findOne({
+        organization: workspace.organization,
+        user: user._id,
+        status: "Active",
+      });
+
+    if (!organizationMembership) {
+      return res.status(403).json({
+        success: false,
+        message:
+          "User must be an active member of this organization before being added to the workspace",
+      });
+    }
+
 
     // ------------------------------------
     // Check existing membership
@@ -269,7 +286,7 @@ const addWorkspaceMember = async (
 
 
     // ------------------------------------
-    // Create membership
+    // Create workspace membership
     // ------------------------------------
 
     const membership =

@@ -3,25 +3,46 @@ const mongoose = require("mongoose");
 const messageSchema = new mongoose.Schema(
   {
     // -------------------------------------------------
-    // PROJECT
+    // PROJECT CHAT
+    // These are used when the message belongs to a project.
     // -------------------------------------------------
 
     project: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Project",
-      required: true,
+      default: null,
       index: true,
     },
 
     // -------------------------------------------------
     // WORKSPACE
-    // Stored for easier tenant-level validation/querying
+    // Stored for project-chat tenant validation/querying.
     // -------------------------------------------------
 
     workspace: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Workspace",
-      required: true,
+      default: null,
+      index: true,
+    },
+
+    // -------------------------------------------------
+    // INDIVIDUAL CHAT
+    // These are used when the message belongs to a
+    // 1-to-1 conversation.
+    // -------------------------------------------------
+
+    conversation: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Conversation",
+      default: null,
+      index: true,
+    },
+
+    receiver: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
       index: true,
     },
 
@@ -48,7 +69,8 @@ const messageSchema = new mongoose.Schema(
     },
 
     // -------------------------------------------------
-    // FUTURE: REPLY / THREAD
+    // REPLY / THREAD
+    // Works for both project and individual chat.
     // -------------------------------------------------
 
     replyTo: {
@@ -58,7 +80,8 @@ const messageSchema = new mongoose.Schema(
     },
 
     // -------------------------------------------------
-    // FUTURE: ATTACHMENTS
+    // ATTACHMENTS
+    // Works for both project and individual chat.
     // -------------------------------------------------
 
     attachments: [
@@ -97,6 +120,21 @@ const messageSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+
+    // -------------------------------------------------
+    // READ STATE
+    // Primarily used for individual chat.
+    // -------------------------------------------------
+
+    isRead: {
+      type: Boolean,
+      default: false,
+    },
+
+    readAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,
@@ -104,8 +142,7 @@ const messageSchema = new mongoose.Schema(
 );
 
 // -----------------------------------------------------
-// INDEX
-// Fetch messages of a project chronologically
+// PROJECT CHAT INDEX
 // -----------------------------------------------------
 
 messageSchema.index({
@@ -113,7 +150,17 @@ messageSchema.index({
   createdAt: 1,
 });
 
-module.exports = mongoose.model(
-  "Message",
-  messageSchema
-);
+// -----------------------------------------------------
+// INDIVIDUAL CHAT INDEX
+// -----------------------------------------------------
+
+messageSchema.index({
+  conversation: 1,
+  createdAt: 1,
+});
+
+// -----------------------------------------------------
+// EXPORT
+// -----------------------------------------------------
+
+module.exports = mongoose.model("Message", messageSchema);

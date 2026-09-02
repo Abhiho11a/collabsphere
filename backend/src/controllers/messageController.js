@@ -642,14 +642,43 @@ const deleteMessage = async (
     // -------------------------------------------------
 
     if (io) {
-      io.to(
-        `project:${message.project}`
-      ).emit(
-        "message-deleted",
-        {
-          messageId: message._id,
-        }
-      );
+
+      // ==========================================
+      // PRIVATE CHAT
+      // ==========================================
+
+      if (message.conversation) {
+
+        io.to(
+          `conversation:${message.conversation}`
+        ).emit(
+          "private-message-deleted",
+          {
+            messageId: message._id,
+            conversationId:
+              message.conversation,
+          }
+        );
+
+      }
+
+      // ==========================================
+      // PROJECT CHAT
+      // ==========================================
+
+      if (message.project) {
+
+        io.to(
+          `project:${message.project}`
+        ).emit(
+          "message-deleted",
+          {
+            messageId: message._id,
+          }
+        );
+
+      }
+
     }
 
     // -------------------------------------------------

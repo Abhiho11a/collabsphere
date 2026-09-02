@@ -8,3 +8,37 @@
 .hide-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
+/* ==========================================
+   COLLABSPHERE CHAT SCROLLBAR
+========================================== */
+
+.chat-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(99, 102, 241, 0.35) transparent;
+}
+
+/* Chrome / Edge / Safari */
+
+.chat-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.chat-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.25);
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background-clip: padding-box;
+}
+
+.chat-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 102, 241, 0.55);
+}
+
+.chat-scrollbar::-webkit-scrollbar-corner {
+  background: transparent;
+}

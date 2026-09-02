@@ -1093,6 +1093,144 @@ const googleCallback = async (req, res) => {
 };
 
 // ========================================
+// UPDATE CURRENT USER PROFILE
+// PATCH /api/auth/profile
+// ========================================
+
+const updateProfile = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    const {
+      name,
+      avatar,
+    } = req.body;
+
+    // ========================================
+    // VALIDATE NAME
+    // ========================================
+
+    if (
+      name !== undefined &&
+      (!name || !name.trim())
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Name cannot be empty",
+      });
+    }
+
+    if (
+      name !== undefined &&
+      name.trim().length < 2
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Name must contain at least 2 characters",
+      });
+    }
+
+    if (
+      name !== undefined &&
+      name.trim().length > 50
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Name cannot exceed 50 characters",
+      });
+    }
+
+    // ========================================
+    // VALIDATE AVATAR
+    // ========================================
+
+    if (
+      avatar !== undefined &&
+      avatar !== null &&
+      typeof avatar !== "string"
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid avatar",
+      });
+    }
+
+    // ========================================
+    // FIND USER
+    // ========================================
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // ========================================
+    // UPDATE NAME
+    // ========================================
+
+    if (name !== undefined) {
+      user.name = name.trim();
+    }
+
+    // ========================================
+    // UPDATE AVATAR
+    // ========================================
+
+    if (avatar !== undefined) {
+      user.avatar = avatar || "";
+    }
+
+    // ========================================
+    // SAVE
+    // ========================================
+
+    await user.save();
+
+    // ========================================
+    // RESPONSE
+    // ========================================
+
+    return res.status(200).json({
+      success: true,
+
+      message:
+        "Profile updated successfully",
+
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        avatar: user.avatar,
+        provider: user.provider,
+        emailVerified:
+          user.emailVerified,
+        lastLogin: user.lastLogin,
+        createdAt: user.createdAt,
+      },
+    });
+
+  } catch (error) {
+
+    console.error(
+      "Update profile error:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message:
+        "Unable to update profile",
+    });
+  }
+};
+
+// ========================================
 // EXPORTS
 // ========================================
 
@@ -1108,5 +1246,6 @@ module.exports = {
   forgotPassword,
   resetPassword,
   googleLogin,
-  googleCallback
+  googleCallback,
+  updateProfile
 };

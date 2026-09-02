@@ -29,7 +29,7 @@ const request = async (url) => {
   if (!response.ok) {
     throw new Error(
       data?.message ||
-      "Request failed."
+        "Request failed."
     );
   }
 
@@ -41,7 +41,10 @@ const request = async (url) => {
 // ARRAY NORMALIZER
 // =====================================================
 
-const extractArray = (data, keys = []) => {
+const extractArray = (
+  data,
+  keys = []
+) => {
   if (Array.isArray(data)) {
     return data;
   }
@@ -60,9 +63,20 @@ const extractArray = (data, keys = []) => {
 // WORKSPACES
 // =====================================================
 
-export const getWorkspaces = async () => {
+export const getWorkspaces = async (
+  organizationId
+) => {
+
+  if (!organizationId) {
+    throw new Error(
+      "Organization ID is required"
+    );
+  }
+
   const data = await request(
-    `${API_BASE_URL}/workspaces`
+    `${API_BASE_URL}/workspaces?organizationId=${encodeURIComponent(
+      organizationId
+    )}`
   );
 
   return extractArray(data, [
@@ -76,109 +90,114 @@ export const getWorkspaces = async () => {
 // PROJECTS
 // =====================================================
 
-export const getWorkspaceProjects = async (
-  workspaceId
-) => {
-  if (!workspaceId) {
-    return [];
-  }
+export const getWorkspaceProjects =
+  async (workspaceId) => {
 
-  const data = await request(
-    `${API_BASE_URL}/workspaces/${workspaceId}/projects`
-  );
+    if (!workspaceId) {
+      return [];
+    }
 
-  return extractArray(data, [
-    "projects",
-    "data",
-  ]);
-};
+    const data = await request(
+      `${API_BASE_URL}/workspaces/${workspaceId}/projects`
+    );
+
+    return extractArray(data, [
+      "projects",
+      "data",
+    ]);
+  };
 
 
 // =====================================================
 // TASKS
 // =====================================================
 
-export const getProjectTasks = async (
-  workspaceId,
-  projectId
-) => {
-  if (!workspaceId || !projectId) {
-    return [];
-  }
+export const getProjectTasks =
+  async (
+    workspaceId,
+    projectId
+  ) => {
 
-  const data = await request(
-    `${API_BASE_URL}/workspaces/${workspaceId}/projects/${projectId}/tasks`
-  );
+    if (
+      !workspaceId ||
+      !projectId
+    ) {
+      return [];
+    }
 
-  return extractArray(data, [
-    "tasks",
-    "data",
-  ]);
-};
+    const data = await request(
+      `${API_BASE_URL}/workspaces/${workspaceId}/projects/${projectId}/tasks`
+    );
+
+    return extractArray(data, [
+      "tasks",
+      "data",
+    ]);
+  };
 
 
 // =====================================================
 // MEMBERS
 // =====================================================
 
-export const getWorkspaceMembers = async (
-  workspaceId
-) => {
-  if (!workspaceId) {
-    return [];
-  }
+export const getWorkspaceMembers =
+  async (workspaceId) => {
 
-  const data = await request(
-    `${API_BASE_URL}/workspaces/${workspaceId}/members`
-  );
+    if (!workspaceId) {
+      return [];
+    }
 
-  return extractArray(data, [
-    "members",
-    "data",
-  ]);
-};
+    const data = await request(
+      `${API_BASE_URL}/workspaces/${workspaceId}/members`
+    );
+
+    return extractArray(data, [
+      "members",
+      "data",
+    ]);
+  };
 
 
 // =====================================================
 // DOCUMENTS
 // =====================================================
 
-export const getWorkspaceDocuments = async (
-  workspaceId
-) => {
-  if (!workspaceId) {
-    return [];
-  }
+export const getWorkspaceDocuments =
+  async (workspaceId) => {
 
-  const data = await request(
-    `${API_BASE_URL}/workspaces/${workspaceId}/documents`
-  );
+    if (!workspaceId) {
+      return [];
+    }
 
-  return extractArray(data, [
-    "documents",
-    "data",
-  ]);
-};
+    const data = await request(
+      `${API_BASE_URL}/workspaces/${workspaceId}/documents`
+    );
+
+    return extractArray(data, [
+      "documents",
+      "data",
+    ]);
+  };
 
 
 // =====================================================
 // ACTIVITY
 // =====================================================
 
-export const getWorkspaceActivity = async (
-  workspaceId
-) => {
-  if (!workspaceId) {
-    return [];
-  }
+export const getWorkspaceActivity =
+  async (workspaceId) => {
 
-  const data = await request(
-    `${API_BASE_URL}/workspaces/${workspaceId}/activity`
-  );
+    if (!workspaceId) {
+      return [];
+    }
 
-  return extractArray(data, [
-    "activities",
-    "activity",
-    "data",
-  ]);
-};
+    const data = await request(
+      `${API_BASE_URL}/workspaces/${workspaceId}/activity`
+    );
+
+    return extractArray(data, [
+      "activities",
+      "activity",
+      "data",
+    ]);
+  };

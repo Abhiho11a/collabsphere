@@ -18,6 +18,7 @@ const io = new Server(server, {
     credentials: true,
   },
 });
+
 app.set("io", io);
 
 io.on("connection", (socket) => {
@@ -27,6 +28,10 @@ io.on("connection", (socket) => {
     socket.id
   );
 
+
+  // ================================
+  // PROJECT CHAT
+  // ================================
 
   socket.on(
     "join-project",
@@ -62,6 +67,52 @@ io.on("connection", (socket) => {
   );
 
 
+  // ================================
+  // PRIVATE / 1-TO-1 CHAT
+  // ================================
+
+  socket.on(
+    "join-conversation",
+    ({ conversationId }) => {
+
+      if (!conversationId) return;
+
+      const room =
+        `conversation:${conversationId}`;
+
+      socket.join(room);
+
+      console.log(
+        `${socket.id} joined ${room}`
+      );
+
+    }
+  );
+
+
+  socket.on(
+    "leave-conversation",
+    ({ conversationId }) => {
+
+      if (!conversationId) return;
+
+      const room =
+        `conversation:${conversationId}`;
+
+      socket.leave(room);
+
+      console.log(
+        `${socket.id} left ${room}`
+      );
+
+    }
+  );
+
+
+  // ================================
+  // DISCONNECT
+  // ================================
+
   socket.on("disconnect", () => {
 
     console.log(
@@ -75,11 +126,17 @@ io.on("connection", (socket) => {
 
 
 const startServer = async () => {
+
   await connectDatabase();
 
   server.listen(PORT, () => {
-    console.log(`🚀 COLLABSPHERE backend running on port ${PORT}`);
+
+    console.log(
+      `🚀 COLLABSPHERE backend running on port ${PORT}`
+    );
+
   });
+
 };
 
 startServer();

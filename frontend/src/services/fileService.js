@@ -229,3 +229,83 @@ export const deleteProjectFile =
 
     return data;
   };
+
+// ========================================
+// ORGANIZATION FILES
+// ========================================
+
+export const getOrganizationFiles =
+  async (
+    organizationId
+  ) => {
+
+    if (!organizationId) {
+      throw new Error(
+        "Organization ID is required."
+      );
+    }
+
+    const data =
+      await request(
+        `${API_BASE_URL}/files/organization?organizationId=${encodeURIComponent(
+          organizationId
+        )}`
+      );
+
+    return (
+      data?.files ||
+      data?.data ||
+      []
+    );
+  };
+
+
+// ========================================
+// UPLOAD ORGANIZATION FILE
+// ========================================
+
+export const uploadOrganizationFile =
+  async (
+    organizationId,
+    file
+  ) => {
+
+    if (!organizationId) {
+      throw new Error(
+        "Organization ID is required."
+      );
+    }
+
+    if (!file) {
+      throw new Error(
+        "Please select a file."
+      );
+    }
+
+    const formData =
+      new FormData();
+
+    formData.append(
+      "file",
+      file
+    );
+
+    formData.append(
+      "organizationId",
+      organizationId
+    );
+
+    const data =
+      await request(
+        `${API_BASE_URL}/files/organization`,
+        {
+          method:
+            "POST",
+
+          body:
+            formData,
+        }
+      );
+
+    return data?.file;
+  };

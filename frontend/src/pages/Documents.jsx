@@ -49,6 +49,16 @@ const Documents = () => {
     projectId,
   } = useParams();
 
+  const [
+    organizationId,
+    setOrganizationId,
+  ] = useState(
+    () =>
+      localStorage.getItem(
+        "currentOrganizationId"
+      ) || ""
+  );
+
 
   // ===================================================
   // DETERMINE PAGE CONTEXT
@@ -225,55 +235,47 @@ const Documents = () => {
     try {
 
       setLoading(true);
-
       setError("");
-
 
       let data = [];
 
-
-      // -----------------------------------------------
-      // GLOBAL
-      // -----------------------------------------------
+      // ======================================
+      // GLOBAL DOCUMENTS
+      // CURRENT ORGANIZATION
+      // ======================================
 
       if (isGlobalDocuments) {
 
         data =
-          await fetchGlobalDocuments();
+          await fetchOrganizationDocuments();
 
       }
 
+      // ======================================
+      // WORKSPACE DOCUMENTS
+      // EXISTING BEHAVIOR
+      // ======================================
 
-      // -----------------------------------------------
-      // WORKSPACE
-      // -----------------------------------------------
-
-      else if (
-        isWorkspaceDocuments
-      ) {
+      else if (isWorkspaceDocuments) {
 
         data =
           await fetchWorkspaceDocumentsData();
 
       }
 
+      // ======================================
+      // PROJECT DOCUMENTS
+      // EXISTING BEHAVIOR
+      // ======================================
 
-      // -----------------------------------------------
-      // PROJECT
-      // -----------------------------------------------
-
-      else if (
-        isProjectDocuments
-      ) {
+      else if (isProjectDocuments) {
 
         data =
           await fetchProjectDocumentsData();
 
       }
 
-
       setDocuments(data);
-
 
     } catch (error) {
 
@@ -282,12 +284,10 @@ const Documents = () => {
         error
       );
 
-
       setError(
-        error.message ||
-        "Unable to load documents"
+        error?.message ||
+          "Unable to load documents"
       );
-
 
     } finally {
 
@@ -296,6 +296,192 @@ const Documents = () => {
     }
   };
 
+  useEffect(() => {
+
+    const handleOrganizationChanged =
+      () => {
+
+        setDocuments([]);
+
+        fetchDocuments();
+
+      };
+
+    window.addEventListener(
+      "organizationChanged",
+      handleOrganizationChanged
+    );
+
+    return () => {
+
+      window.removeEventListener(
+        "organizationChanged",
+        handleOrganizationChanged
+      );
+
+    };
+
+  }, [organizationId]);
+
+
+  // ==========================================
+  // FETCH ALL PROJECT DOCUMENTS
+  // CURRENT ORGANIZATION ONLY
+  // ==========================================
+
+  const fetchOrganizationDocuments =
+    async () => {
+
+      const currentOrganizationId =
+        localStorage.getItem(
+          "currentOrganizationId"
+        ) || "";
+
+      if (!currentOrganizationId) {
+        return [];
+      }
+
+      setOrganizationId(
+        currentOrganizationId
+      );
+
+      // --------------------------------------
+      // GET ORGANIZATION WORKSPACES
+      // --------------------------------------
+
+      const organizationWorkspaces =
+        await getWorkspaces(
+          currentOrganizationId
+        );
+
+      // --------------------------------------
+      // GET PROJECTS FROM EACH WORKSPACE
+      // --------------------------------------
+
+      const projectResults =
+        await Promise.all(
+          organizationWorkspaces.map(
+            async (workspace) => {
+
+              const currentWorkspaceId =
+                workspace?._id ||
+                workspace?.id;
+
+              if (!currentWorkspaceId) {
+                return [];
+              }
+
+              try {
+
+                const workspaceProjects =
+                  await getWorkspaceProjects(
+                    currentWorkspaceId
+                  );
+
+                return (
+                  Array.isArray(
+                    workspaceProjects
+                  )
+                    ? workspaceProjects
+                    : []
+                ).map((project) => ({
+                  ...project,
+
+                  workspaceId:
+                    currentWorkspaceId,
+
+                  workspace,
+                }));
+
+              } catch (error) {
+
+                console.error(
+                  `Unable to load projects for workspace ${currentWorkspaceId}`,
+                  error
+                );
+
+                return [];
+              }
+            }
+          )
+        );
+
+      const organizationProjects =
+        projectResults.flat();
+
+      // --------------------------------------
+      // GET DOCUMENTS FROM EACH PROJECT
+      // --------------------------------------
+
+      const documentResults =
+        await Promise.all(
+          organizationProjects.map(
+            async (project) => {
+
+              const currentWorkspaceId =
+                project.workspaceId;
+
+              const currentProjectId =
+                project?._id ||
+                project?.id;
+
+              if (
+                !currentWorkspaceId ||
+                !currentProjectId
+              ) {
+                return [];
+              }
+
+              try {
+
+                const projectDocuments =
+                  await getProjectDocuments(
+                    currentWorkspaceId,
+                    currentProjectId
+                  );
+
+                return (
+                  Array.isArray(
+                    projectDocuments
+                  )
+                    ? projectDocuments
+                    : []
+                ).map((document) => ({
+                  ...document,
+
+                  workspaceId:
+                    currentWorkspaceId,
+
+                  projectId:
+                    currentProjectId,
+
+                  workspace:
+                    project.workspace,
+
+                  project,
+                }));
+
+              } catch (error) {
+
+                /*
+                * A project may be inaccessible to
+                * the current user. Don't let one
+                * project break the entire page.
+                */
+
+                console.warn(
+                  `Unable to load documents for project ${currentProjectId}`,
+                  error
+                );
+
+                return [];
+              }
+            }
+          )
+        );
+
+      return documentResults.flat();
+    };
 
   // ===================================================
   // LOAD WORKSPACE / PROJECT CONTEXT

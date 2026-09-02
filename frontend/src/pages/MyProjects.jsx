@@ -10,12 +10,15 @@ import {
 } from "lucide-react";
 
 import {
+  useCallback,
   useEffect,
   useMemo,
   useState,
 } from "react";
 
 import { useNavigate } from "react-router-dom";
+
+import { getWorkspaces } from "../services/dashboardService";
 
 const API_BASE_URL =
   "http://localhost:5000/api";
@@ -40,52 +43,202 @@ const MyProjects = () => {
 
   // ========================================
   // FETCH MY PROJECTS
+  //
+  // /projects/my returns only projects where
+  // the logged-in user is an active member.
+  //
+  // We then scope those projects to workspaces
+  // belonging to the CURRENT organization.
+  //
+  // Result:
+  //   Current Org
+  //     Workspace 1 -> user is in Project A -> SHOW
+  //     Workspace 2 -> user is NOT in Project B -> HIDE
+  //
+  //   Other Org
+  //     User's projects -> HIDE
   // ========================================
 
-  const fetchMyProjects = async () => {
-    try {
-      setLoading(true);
-      setError("");
+  const fetchMyProjects = useCallback(
+    async () => {
+      try {
+        setLoading(true);
+        setError("");
 
-      const response = await fetch(
-        `${API_BASE_URL}/projects/my`,
-        {
-          method: "GET",
-          credentials: "include",
+        const currentOrganizationId =
+          localStorage.getItem(
+            "currentOrganizationId"
+          ) || "";
+
+        if (!currentOrganizationId) {
+          setProjects([]);
+          setError(
+            "Please select an organization."
+          );
+          return;
         }
-      );
 
-      const data =
-        await response.json();
+        // ----------------------------------------
+        // 1. Get ONLY workspaces in current org
+        // ----------------------------------------
 
-      if (!response.ok) {
-        throw new Error(
-          data.message ||
-            "Unable to fetch your projects"
+        const organizationWorkspaces =
+          await getWorkspaces(
+            currentOrganizationId
+          );
+
+        if (
+          !Array.isArray(
+            organizationWorkspaces
+          ) ||
+          organizationWorkspaces.length === 0
+        ) {
+          setProjects([]);
+          return;
+        }
+
+        const organizationWorkspaceIds =
+          new Set(
+            organizationWorkspaces
+              .map(
+                (workspace) =>
+                  workspace?._id ||
+                  workspace?.id
+              )
+              .filter(Boolean)
+              .map((id) => String(id))
+          );
+
+        // ----------------------------------------
+        // 2. Get projects where the logged-in user
+        //    is an active project member
+        // ----------------------------------------
+
+        const response = await fetch(
+          `${API_BASE_URL}/projects/my`,
+          {
+            method: "GET",
+            credentials: "include",
+            headers: {
+              Accept: "application/json",
+            },
+          }
         );
+
+        const data =
+          await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data?.message ||
+              "Unable to fetch your projects"
+          );
+        }
+
+        const myProjects =
+          Array.isArray(data?.projects)
+            ? data.projects
+            : [];
+
+        // ----------------------------------------
+        // 3. Keep only projects whose workspace
+        //    belongs to the current organization.
+        // ----------------------------------------
+
+        const currentOrganizationProjects =
+          myProjects
+            .filter((project) => {
+              const projectWorkspaceId =
+                project?.workspace?._id ||
+                project?.workspace?.id ||
+                project?.workspace;
+
+              return (
+                projectWorkspaceId &&
+                organizationWorkspaceIds.has(
+                  String(projectWorkspaceId)
+                )
+              );
+            })
+            .map((project) => {
+              const projectWorkspaceId =
+                project?.workspace?._id ||
+                project?.workspace?.id ||
+                project?.workspace;
+
+              const workspace =
+                organizationWorkspaces.find(
+                  (item) =>
+                    String(
+                      item?._id ||
+                        item?.id
+                    ) ===
+                    String(
+                      projectWorkspaceId
+                    )
+                );
+
+              return {
+                ...project,
+                workspace:
+                  workspace ||
+                  project.workspace,
+                workspaceId:
+                  projectWorkspaceId,
+              };
+            });
+
+        setProjects(
+          currentOrganizationProjects
+        );
+      } catch (error) {
+        console.error(
+          "Fetch my organization projects error:",
+          error
+        );
+
+        setProjects([]);
+
+        setError(
+          error?.message ||
+            "Unable to load your projects"
+        );
+      } finally {
+        setLoading(false);
       }
+    },
+    []
+  );
 
-      setProjects(
-        data.projects || []
-      );
-    } catch (error) {
-      console.error(
-        "Fetch my projects error:",
-        error
-      );
-
-      setError(
-        error.message ||
-          "Unable to load your projects"
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+  // ========================================
+  // INITIAL LOAD + ORGANIZATION CHANGE
+  // ========================================
 
   useEffect(() => {
     fetchMyProjects();
-  }, []);
+
+    const handleOrganizationChanged =
+      () => {
+        // Immediately clear projects from the
+        // previous organization.
+        setProjects([]);
+        setError("");
+
+        fetchMyProjects();
+      };
+
+    window.addEventListener(
+      "organizationChanged",
+      handleOrganizationChanged
+    );
+
+    return () => {
+      window.removeEventListener(
+        "organizationChanged",
+        handleOrganizationChanged
+      );
+    };
+  }, [fetchMyProjects]);
 
   // ========================================
   // FILTER
@@ -355,7 +508,11 @@ const MyProjects = () => {
                 project={project}
                 onOpen={() =>
                   navigate(
-                    `/workspaces/${project.workspace?._id}/projects/${project._id}`
+                    `/workspaces/${
+                      project.workspaceId ||
+                      project.workspace?._id ||
+                      project.workspace?.id
+                    }/projects/${project._id}`
                   )
                 }
               />

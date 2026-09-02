@@ -15,6 +15,9 @@ const taskRoutes = require("./routes/taskRoutes");
 const workspaceFileRoutes = require("./routes/workspaceFileRoutes");
 const projectActivityRoutes = require("./routes/projectActivityRoutes");
 const messageRoutes = require("./routes/messageRoutes");
+const organizationRoutes = require("./routes/organizationRoutes");
+const organizationMemberRoutes = require("./routes/organizationMemberRoutes");
+const conversationRoutes = require("./routes/conversationRoutes");
 
 const app = express();
 
@@ -53,6 +56,20 @@ app.get("/api/health", (req, res) => {
 });
 
 app.use("/api/auth", authRoutes);
+app.use(
+  "/api/organizations",
+  organizationRoutes
+);
+app.use(
+  "/api/organizations",
+  organizationMemberRoutes
+);
+
+app.use(
+  "/api/conversations",
+  conversationRoutes
+);
+
 app.use("/api", projectRoutes);
 app.use("/api/workspaces", workspaceRoutes);
 app.use("/api/workspaces", workspaceMemberRoutes);

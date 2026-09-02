@@ -135,7 +135,11 @@ const uploadWorkspaceFile = async (
 
     const file =
       await File.create({
-        workspace: workspaceId,
+        organization:
+          workspace.organization,
+
+        workspace:
+          workspaceId,
 
         project: null,
 

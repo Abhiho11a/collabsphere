@@ -4,6 +4,7 @@ const Project = require("../models/Project");
 const ProjectMember = require("../models/ProjectMember");
 const File = require("../models/File");
 const Activity = require("../models/Activity");
+const Workspace = require("../models/Workspace");
 
 
 // ========================================
@@ -95,6 +96,21 @@ const uploadProjectFile = async (req, res) => {
       });
     }
 
+    const workspace =
+      await Workspace.findById(
+        workspaceId
+      ).select("organization");
+
+    if (!workspace) {
+      return res.status(404).json({
+        success: false,
+        message: "Workspace not found",
+      });
+    }
+
+
+    
+
 
     // ------------------------------------
     // UPLOAD TO CLOUDINARY
@@ -129,7 +145,7 @@ const uploadProjectFile = async (req, res) => {
           stream.end(req.file.buffer);
         }
       );
-
+      
 
     // ------------------------------------
     // SAVE FILE METADATA
@@ -137,11 +153,17 @@ const uploadProjectFile = async (req, res) => {
 
     const projectFile =
       await File.create({
-        project: projectId,
+        organization:
+          workspace.organization,
 
-        workspace: workspaceId,
+        project:
+          projectId,
 
-        uploadedBy: req.user._id,
+        workspace:
+          workspaceId,
+
+        uploadedBy:
+          req.user._id,
 
         originalName:
           req.file.originalname,
@@ -161,7 +183,6 @@ const uploadProjectFile = async (req, res) => {
         size:
           req.file.size,
       });
-
 
     // ------------------------------------
     // GET POPULATED FILE

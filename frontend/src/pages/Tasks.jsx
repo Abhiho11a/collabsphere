@@ -27,6 +27,10 @@ import {
   updateTaskStatus,
 } from "../services/tasks";
 
+import {
+  getWorkspaces,
+} from "../services/dashboardService";
+
 
 // =====================================================
 // MAIN COMPONENT
@@ -89,6 +93,16 @@ const Tasks = () => {
 
   const [activeTab, setActiveTab] =
     useState("all");
+
+  const [
+    organizationId,
+    setOrganizationId,
+  ] = useState(
+    () =>
+      localStorage.getItem(
+        "currentOrganizationId"
+      ) || ""
+  );
 
 
   // =====================================================
@@ -154,6 +168,38 @@ const Tasks = () => {
     loadMyTasks();
   }, []);
 
+  useEffect(() => {
+
+    const handleOrganizationChanged =
+      () => {
+
+        setTasks([]);
+
+        loadMyTasks();
+
+      };
+
+    window.addEventListener(
+      "organizationChanged",
+      handleOrganizationChanged
+    );
+
+    return () => {
+
+      window.removeEventListener(
+        "organizationChanged",
+        handleOrganizationChanged
+      );
+
+    };
+
+  }, []);
+
+
+  // ==========================================
+  // LOAD MY TASKS
+  // CURRENT ORGANIZATION ONLY
+  // ==========================================
 
   const loadMyTasks = async () => {
 
@@ -162,31 +208,105 @@ const Tasks = () => {
       setLoading(true);
       setError("");
 
-      const data = await getMyTasks();
+      const currentOrganizationId =
+        localStorage.getItem(
+          "currentOrganizationId"
+        ) || "";
 
-      if (data.success) {
+      if (!currentOrganizationId) {
 
-        setTasks(data.tasks || []);
+        setTasks([]);
 
-      } else {
+        setError(
+          "Please select an organization."
+        );
+
+        return;
+      }
+
+      setOrganizationId(
+        currentOrganizationId
+      );
+
+      // ======================================
+      // GET WORKSPACES IN CURRENT ORG
+      // ======================================
+
+      const organizationWorkspaces =
+        await getWorkspaces(
+          currentOrganizationId
+        );
+
+      const organizationWorkspaceIds =
+        new Set(
+          organizationWorkspaces.map(
+            (workspace) =>
+              String(
+                workspace?._id ||
+                  workspace?.id
+              )
+          )
+        );
+
+      // ======================================
+      // GET TASKS ASSIGNED TO CURRENT USER
+      // ======================================
+
+      const data =
+        await getMyTasks();
+
+      if (!data?.success) {
 
         throw new Error(
-          data.message || "Unable to load tasks"
+          data?.message ||
+            "Unable to load tasks"
         );
 
       }
 
+      const userTasks =
+        Array.isArray(data.tasks)
+          ? data.tasks
+          : [];
+
+      // ======================================
+      // FILTER BY CURRENT ORGANIZATION
+      // ======================================
+
+      const organizationTasks =
+        userTasks.filter((task) => {
+
+          const taskWorkspaceId =
+            task?.workspace?._id ||
+            task?.workspace;
+
+          if (!taskWorkspaceId) {
+            return false;
+          }
+
+          return organizationWorkspaceIds.has(
+            String(taskWorkspaceId)
+          );
+
+        });
+
+      setTasks(
+        organizationTasks
+      );
+
     } catch (error) {
 
       console.error(
-        "Load my tasks error:",
+        "Load organization tasks error:",
         error
       );
 
+      setTasks([]);
+
       setError(
-        error.response?.data?.message ||
-        error.message ||
-        "Unable to load tasks"
+        error?.response?.data?.message ||
+          error?.message ||
+          "Unable to load tasks"
       );
 
     } finally {
@@ -194,7 +314,6 @@ const Tasks = () => {
       setLoading(false);
 
     }
-
   };
 
 

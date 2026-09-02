@@ -2,23 +2,31 @@ const mongoose = require("mongoose");
 
 const fileSchema = new mongoose.Schema(
   {
-    // ========================================
-    // WORKSPACE
-    // ========================================
+    // ==========================================
+    // ORGANIZATION
+    // ==========================================
 
-    workspace: {
+    organization: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Workspace",
+      ref: "Organization",
       required: true,
       index: true,
     },
 
+    // ==========================================
+    // WORKSPACE
+    // ==========================================
 
-    // ========================================
+    workspace: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Workspace",
+      default: null,
+      index: true,
+    },
+
+    // ==========================================
     // PROJECT
-    // ========================================
-    // null = workspace-level file
-    // ObjectId = project-level file
+    // ==========================================
 
     project: {
       type: mongoose.Schema.Types.ObjectId,
@@ -27,10 +35,9 @@ const fileSchema = new mongoose.Schema(
       index: true,
     },
 
-
-    // ========================================
-    // UPLOADED BY
-    // ========================================
+    // ==========================================
+    // UPLOADER
+    // ==========================================
 
     uploadedBy: {
       type: mongoose.Schema.Types.ObjectId,
@@ -39,10 +46,9 @@ const fileSchema = new mongoose.Schema(
       index: true,
     },
 
-
-    // ========================================
-    // ORIGINAL FILE NAME
-    // ========================================
+    // ==========================================
+    // FILE INFORMATION
+    // ==========================================
 
     originalName: {
       type: String,
@@ -50,90 +56,63 @@ const fileSchema = new mongoose.Schema(
       trim: true,
     },
 
-
-    // ========================================
-    // FILE URL
-    // ========================================
-
     fileUrl: {
       type: String,
       required: true,
     },
-
-
-    // ========================================
-    // CLOUDINARY PUBLIC ID
-    // ========================================
 
     publicId: {
       type: String,
       required: true,
     },
 
-
-    // ========================================
-    // RESOURCE TYPE
-    // ========================================
-
     resourceType: {
       type: String,
       default: "auto",
     },
-
-
-    // ========================================
-    // MIME TYPE
-    // ========================================
 
     mimeType: {
       type: String,
       default: "",
     },
 
-
-    // ========================================
-    // FILE SIZE
-    // ========================================
-
     size: {
       type: Number,
       default: 0,
     },
   },
-
   {
     timestamps: true,
   }
 );
 
 
-// ========================================
+// ==========================================
 // INDEXES
-// ========================================
+// ==========================================
 
-// Workspace files
 fileSchema.index({
+  organization: 1,
+  createdAt: -1,
+});
+
+fileSchema.index({
+  organization: 1,
   workspace: 1,
-  project: 1,
   createdAt: -1,
 });
 
-
-// Project files
 fileSchema.index({
+  organization: 1,
   project: 1,
   createdAt: -1,
 });
 
-
-// Uploaded files
 fileSchema.index({
   uploadedBy: 1,
   createdAt: -1,
 });
 
 
-module.exports = mongoose.model(
-  "File",
-  fileSchema
-);
+module.exports =
+  mongoose.model("File", fileSchema);

@@ -13,6 +13,7 @@ const {
   resetPassword,
   googleLogin,
   googleCallback,
+  updateProfile,
 } = require("../controllers/authController");
 
 const {
@@ -93,5 +94,10 @@ router.get(
   googleCallback
 );
 
+router.patch(
+  "/profile",
+  protect,
+  updateProfile
+);
 
 module.exports = router;

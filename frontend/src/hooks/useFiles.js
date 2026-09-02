@@ -5,9 +5,10 @@ import {
 } from "react";
 
 import {
-  getGlobalFiles,
+  getOrganizationFiles,
   getWorkspaceFiles,
   getProjectFiles,
+  uploadOrganizationFile,
   uploadWorkspaceFile,
   uploadProjectFile,
   deleteWorkspaceFile,
@@ -20,7 +21,7 @@ import {
 // ==========================================
 
 const useFiles = ({
-  scope = "global",
+  scope = "organization",
   workspaceId = null,
   projectId = null,
 } = {}) => {
@@ -54,27 +55,37 @@ const useFiles = ({
           setLoading(true);
           setError("");
 
-
           let result = [];
 
-
-          // --------------------------------
-          // GLOBAL
-          // --------------------------------
+          // ==================================
+          // ORGANIZATION / GLOBAL
+          // ==================================
 
           if (
+            scope === "organization" ||
             scope === "global"
           ) {
 
-            result =
-              await getGlobalFiles();
+            const organizationId =
+              localStorage.getItem(
+                "currentOrganizationId"
+              );
 
+            if (!organizationId) {
+              throw new Error(
+                "Please select an organization."
+              );
+            }
+
+            result =
+              await getOrganizationFiles(
+                organizationId
+              );
           }
 
-
-          // --------------------------------
+          // ==================================
           // WORKSPACE
-          // --------------------------------
+          // ==================================
 
           else if (
             scope === "workspace"
@@ -86,18 +97,15 @@ const useFiles = ({
               );
             }
 
-
             result =
               await getWorkspaceFiles(
                 workspaceId
               );
-
           }
 
-
-          // --------------------------------
+          // ==================================
           // PROJECT
-          // --------------------------------
+          // ==================================
 
           else if (
             scope === "project"
@@ -112,15 +120,12 @@ const useFiles = ({
               );
             }
 
-
             result =
               await getProjectFiles(
                 workspaceId,
                 projectId
               );
-
           }
-
 
           setFiles(
             Array.isArray(result)
@@ -135,12 +140,10 @@ const useFiles = ({
             error
           );
 
-
           setError(
-            error.message ||
-            "Unable to load files."
+            error?.message ||
+              "Unable to load files."
           );
-
 
           setFiles([]);
 
@@ -173,6 +176,41 @@ const useFiles = ({
 
 
   // ========================================
+  // ORGANIZATION CHANGED
+  // ========================================
+
+  useEffect(() => {
+
+    const handleOrganizationChanged =
+      () => {
+
+        setFiles([]);
+        setError("");
+
+        loadFiles();
+
+      };
+
+    window.addEventListener(
+      "organizationChanged",
+      handleOrganizationChanged
+    );
+
+    return () => {
+
+      window.removeEventListener(
+        "organizationChanged",
+        handleOrganizationChanged
+      );
+
+    };
+
+  }, [
+    loadFiles,
+  ]);
+
+
+  // ========================================
   // UPLOAD FILE
   // ========================================
 
@@ -186,21 +224,45 @@ const useFiles = ({
           );
         }
 
-
         try {
 
           setUploading(true);
           setError("");
 
-
           let uploadedFile;
 
-
-          // --------------------------------
-          // WORKSPACE UPLOAD
-          // --------------------------------
+          // ==================================
+          // ORGANIZATION
+          // ==================================
 
           if (
+            scope === "organization" ||
+            scope === "global"
+          ) {
+
+            const organizationId =
+              localStorage.getItem(
+                "currentOrganizationId"
+              );
+
+            if (!organizationId) {
+              throw new Error(
+                "Please select an organization."
+              );
+            }
+
+            uploadedFile =
+              await uploadOrganizationFile(
+                organizationId,
+                file
+              );
+          }
+
+          // ==================================
+          // WORKSPACE
+          // ==================================
+
+          else if (
             scope === "workspace"
           ) {
 
@@ -210,19 +272,16 @@ const useFiles = ({
               );
             }
 
-
             uploadedFile =
               await uploadWorkspaceFile(
                 workspaceId,
                 file
               );
-
           }
 
-
-          // --------------------------------
-          // PROJECT UPLOAD
-          // --------------------------------
+          // ==================================
+          // PROJECT
+          // ==================================
 
           else if (
             scope === "project"
@@ -237,33 +296,17 @@ const useFiles = ({
               );
             }
 
-
             uploadedFile =
               await uploadProjectFile(
                 workspaceId,
                 projectId,
                 file
               );
-
           }
 
-
-          // --------------------------------
-          // GLOBAL
-          // --------------------------------
-
-          else {
-
-            throw new Error(
-              "Files can only be uploaded from a workspace or project."
-            );
-
-          }
-
-
-          // --------------------------------
-          // UPDATE LOCAL STATE
-          // --------------------------------
+          // ==================================
+          // UPDATE UI
+          // ==================================
 
           if (uploadedFile) {
 
@@ -276,7 +319,6 @@ const useFiles = ({
 
           }
 
-
           return uploadedFile;
 
         } catch (error) {
@@ -286,12 +328,10 @@ const useFiles = ({
             error
           );
 
-
           setError(
-            error.message ||
-            "Unable to upload file."
+            error?.message ||
+              "Unable to upload file."
           );
-
 
           throw error;
 
@@ -324,53 +364,23 @@ const useFiles = ({
           );
         }
 
-
         try {
 
           setDeleting(true);
           setError("");
 
-
-          // --------------------------------
-          // WORKSPACE
-          // --------------------------------
-
           if (
             scope === "workspace"
           ) {
-
-            if (!workspaceId) {
-              throw new Error(
-                "Workspace ID is required."
-              );
-            }
-
 
             await deleteWorkspaceFile(
               workspaceId,
               fileId
             );
 
-          }
-
-
-          // --------------------------------
-          // PROJECT
-          // --------------------------------
-
-          else if (
+          } else if (
             scope === "project"
           ) {
-
-            if (
-              !workspaceId ||
-              !projectId
-            ) {
-              throw new Error(
-                "Workspace ID and Project ID are required."
-              );
-            }
-
 
             await deleteProjectFile(
               workspaceId,
@@ -378,33 +388,21 @@ const useFiles = ({
               fileId
             );
 
-          }
-
-
-          // --------------------------------
-          // GLOBAL
-          // --------------------------------
-
-          else {
+          } else {
 
             throw new Error(
-              "Delete files from their workspace or project."
+              "Organization files cannot be deleted from this page."
             );
 
           }
-
-
-          // --------------------------------
-          // REMOVE FROM UI
-          // --------------------------------
 
           setFiles(
             (currentFiles) =>
               currentFiles.filter(
                 (file) =>
                   String(
-                    file._id ||
-                    file.id
+                    file?._id ||
+                      file?.id
                   ) !==
                   String(fileId)
               )
@@ -417,12 +415,10 @@ const useFiles = ({
             error
           );
 
-
           setError(
-            error.message ||
-            "Unable to delete file."
+            error?.message ||
+              "Unable to delete file."
           );
-
 
           throw error;
 
@@ -441,31 +437,17 @@ const useFiles = ({
     );
 
 
-  // ========================================
-  // RETURN
-  // ========================================
-
   return {
-
     files,
-
     loading,
-
     uploading,
-
     deleting,
-
     error,
-
     refresh:
       loadFiles,
-
     uploadFile,
-
     deleteFile,
-
   };
-
 };
 
 

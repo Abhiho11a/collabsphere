@@ -28,6 +28,9 @@ import DocumentEditor from "./pages/DocumentEditor";
 import MyProjects from "./pages/MyProjects";
 import ProjectChat from "./pages/ProjectChat";
 import Settings from "./pages/Settings";
+import OrganizationMember from "./pages/organization/OrganizationMembers";
+import OrganizationSettings from "./pages/organization/OrganizationSettings";
+import Chat from "./pages/Chat";
 
 
 const App = () => {
@@ -75,7 +78,17 @@ const App = () => {
             element={<Dashboard />}
           />
 
-          {/* Temporary routes */}
+
+          <Route
+            path="/organization/members"
+            element={<OrganizationMember />}
+          />
+
+          <Route
+            path="/organization/settings"
+            element={<OrganizationSettings />}
+          />
+
 
           <Route
             path="/workspaces"
@@ -166,6 +179,11 @@ const App = () => {
           <Route
             path="/workspaces/:workspaceId/projects/:projectId/files"
             element={<Files />}
+          />
+
+          <Route
+            path="/chat"
+            element={<Chat />}
           />
 
           <Route

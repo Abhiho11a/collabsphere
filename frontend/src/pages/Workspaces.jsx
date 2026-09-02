@@ -67,6 +67,21 @@ const Workspaces = () => {
 
   const [openMenu, setOpenMenu] =
     useState(null);
+  
+  const [organizationId, setOrganizationId] =
+    useState(
+      () =>
+        localStorage.getItem(
+          "currentOrganizationId"
+        ) || ""
+    );
+
+  const [organizationRole, setOrganizationRole] =
+    useState(""); 
+
+  const canCreateWorkspace =
+    organizationRole === "organization_admin" ||
+    organizationRole === "member";
 
 
 
@@ -74,91 +89,135 @@ const Workspaces = () => {
   // FETCH WORKSPACES
   // ==========================================
 
-  const fetchWorkspaces = async () => {
-    try {
-      setLoading(true);
-      setError("");
+  const fetchWorkspaces = async (
+  selectedOrganizationId = organizationId
+) => {
 
-      const response = await fetch(
-        `${API_BASE_URL}/workspaces`,
-        {
-          method: "GET",
-          credentials: "include",
-        }
-      );
+  try {
 
+    setLoading(true);
+    setError("");
 
-      // ----------------------------------------
-      // CHECK RESPONSE TYPE
-      // ----------------------------------------
+    // ==========================================
+    // ORGANIZATION VALIDATION
+    // ==========================================
 
-      const contentType =
-        response.headers.get(
-          "content-type"
-        );
+    if (!selectedOrganizationId) {
 
-      let data;
-
-      if (
-        contentType &&
-        contentType.includes(
-          "application/json"
-        )
-      ) {
-        data = await response.json();
-      } else {
-        const text =
-          await response.text();
-
-        console.error(
-          "Unexpected server response:",
-          text
-        );
-
-        throw new Error(
-          "Server returned an unexpected response."
-        );
-      }
-
-
-      // ----------------------------------------
-      // API ERROR
-      // ----------------------------------------
-
-      if (!response.ok) {
-        throw new Error(
-          data.message ||
-            "Unable to fetch workspaces."
-        );
-      }
-
-
-      // ----------------------------------------
-      // SUCCESS
-      // ----------------------------------------
-
-      setWorkspaces(
-        data.workspaces || []
-      );
-
-    } catch (error) {
-
-      console.error(
-        "Fetch workspaces error:",
-        error
-      );
+      setWorkspaces([]);
 
       setError(
-        error.message ||
-          "Unable to load workspaces."
+        "Please select an organization."
       );
 
-    } finally {
+      return;
+    }
 
-      setLoading(false);
+
+    // ==========================================
+    // FETCH WORKSPACES
+    // ==========================================
+
+    const response = await fetch(
+      `${API_BASE_URL}/workspaces?organizationId=${encodeURIComponent(
+        selectedOrganizationId
+      )}`,
+      {
+        method: "GET",
+        credentials: "include",
+        headers: {
+          Accept: "application/json",
+        },
+      }
+    );
+
+
+    // ==========================================
+    // RESPONSE TYPE
+    // ==========================================
+
+    const contentType =
+      response.headers.get(
+        "content-type"
+      ) || "";
+
+
+    let data;
+
+
+    if (
+      contentType.includes(
+        "application/json"
+      )
+    ) {
+
+      data =
+        await response.json();
+
+    } else {
+
+      const text =
+        await response.text();
+
+      console.error(
+        "Unexpected server response:",
+        text
+      );
+
+      throw new Error(
+        "Server returned an unexpected response."
+      );
 
     }
-  };
+
+
+    // ==========================================
+    // API ERROR
+    // ==========================================
+
+    if (!response.ok) {
+
+      throw new Error(
+        data?.message ||
+          "Unable to fetch workspaces."
+      );
+
+    }
+
+
+    // ==========================================
+    // SUCCESS
+    // ==========================================
+
+    setWorkspaces(
+      Array.isArray(
+        data?.workspaces
+      )
+        ? data.workspaces
+        : []
+    );
+
+  } catch (error) {
+
+    console.error(
+      "Fetch workspaces error:",
+      error
+    );
+
+    setWorkspaces([]);
+
+    setError(
+      error?.message ||
+        "Unable to load workspaces."
+    );
+
+  } finally {
+
+    setLoading(false);
+
+  }
+
+};
 
 
   // ==========================================
@@ -166,7 +225,120 @@ const Workspaces = () => {
   // ==========================================
 
   useEffect(() => {
-    fetchWorkspaces();
+    const storedOrganizationId =
+      localStorage.getItem(
+        "currentOrganizationId"
+      ) || "";
+
+    const storedOrganizationRole =
+      localStorage.getItem(
+        "currentOrganizationRole"
+      ) || "";
+
+    setOrganizationRole(
+      storedOrganizationRole
+    );
+
+
+    setOrganizationId(
+      storedOrganizationId
+    );
+
+
+    if (storedOrganizationId) {
+
+      fetchWorkspaces(
+        storedOrganizationId
+      );
+
+    } else {
+
+      setWorkspaces([]);
+
+      setLoading(false);
+
+      setError(
+        "Please select an organization."
+      );
+
+    }
+
+  }, []);
+
+  useEffect(() => {
+
+    const handleOrganizationChanged =
+      () => {
+
+        const newOrganizationId =
+          localStorage.getItem(
+            "currentOrganizationId"
+          ) || "";
+
+
+        // ------------------------------------------
+        // UPDATE ORGANIZATION
+        // ------------------------------------------
+
+        setOrganizationId(
+          newOrganizationId
+        );
+
+
+        const newOrganizationRole =
+          localStorage.getItem(
+            "currentOrganizationRole"
+          ) || "";
+
+        setOrganizationRole(
+          newOrganizationRole
+        );
+
+        // ------------------------------------------
+        // CLEAR OLD ORGANIZATION DATA
+        // ------------------------------------------
+
+        setWorkspaces([]);
+
+
+        // ------------------------------------------
+        // LOAD NEW ORGANIZATION WORKSPACES
+        // ------------------------------------------
+
+        if (newOrganizationId) {
+
+          fetchWorkspaces(
+            newOrganizationId
+          );
+
+        } else {
+
+          setLoading(false);
+
+          setError(
+            "Please select an organization."
+          );
+
+        }
+
+      };
+
+
+    window.addEventListener(
+      "organizationChanged",
+      handleOrganizationChanged
+    );
+
+
+    return () => {
+
+      window.removeEventListener(
+        "organizationChanged",
+        handleOrganizationChanged
+      );
+
+    };
+
   }, []);
 
 
@@ -415,19 +587,18 @@ const Workspaces = () => {
         </div>
 
 
-        <button
-          type="button"
-          className="inline-flex w-fit items-center gap-2 rounded-lg bg-indigo-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-400"
-          onClick={() =>
-            setCreateModalOpen(true)
-          }
-        >
-
-          <Plus size={17} />
-
-          Create Workspace
-
-        </button>
+        {canCreateWorkspace && (
+          <button
+            type="button"
+            className="inline-flex w-fit items-center gap-2 rounded-lg bg-indigo-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-400"
+            onClick={() =>
+              setCreateModalOpen(true)
+            }
+          >
+            <Plus size={17} />
+            Create Workspace
+          </button>
+        )}
 
       </section>
 
@@ -786,24 +957,18 @@ const Workspaces = () => {
           </p>
 
 
-          {workspaces.length === 0 && (
-
-            <button
-              type="button"
-              onClick={() =>
-                setCreateModalOpen(
-                  true
-                )
-              }
-              className="mt-5 inline-flex items-center gap-2 rounded-lg bg-indigo-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-400"
-            >
-
-              <Plus size={15} />
-
-              Create Workspace
-
-            </button>
-
+          {workspaces.length === 0 &&
+            canCreateWorkspace && (
+              <button
+                type="button"
+                onClick={() =>
+                  setCreateModalOpen(true)
+                }
+                className="mt-5 inline-flex items-center gap-2 rounded-lg bg-indigo-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-400"
+              >
+                <Plus size={15} />
+                Create Workspace
+              </button>
           )}
 
         </div>
@@ -823,6 +988,7 @@ const Workspaces = () => {
         onCreate={
           handleWorkspaceCreated
         }
+        organizationId={organizationId}
       />
 
       <EditWorkspaceModal

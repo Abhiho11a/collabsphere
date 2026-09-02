@@ -35,6 +35,14 @@ const Projects = () => {
 
   const { workspaceId } = useParams();
 
+  const [organizationId, setOrganizationId] =
+    useState(
+      () =>
+        localStorage.getItem(
+          "currentOrganizationId"
+        ) || ""
+    );
+
   const [projects, setProjects] = useState([]);
   const [workspace, setWorkspace] = useState(null);
 

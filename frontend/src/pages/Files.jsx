@@ -41,6 +41,16 @@ const Files = () => {
     projectId,
   } = useParams();
 
+  const [
+    organizationId,
+    setOrganizationId,
+  ] = useState(
+    () =>
+      localStorage.getItem(
+        "currentOrganizationId"
+      ) || ""
+  );
+
 
   // ==========================================
   // DETERMINE SCOPE
@@ -51,7 +61,7 @@ const Files = () => {
       ? "project"
       : workspaceId
       ? "workspace"
-      : "global";
+      : "organization";
 
 
   // ==========================================
@@ -174,7 +184,7 @@ const Files = () => {
       ? "Files shared within this project."
       : scope === "workspace"
       ? "Files shared across this workspace."
-      : "Browse files from your workspaces and projects.";
+      : "Upload organization files and access files from your permitted workspaces and projects.";
 
 
   // ==========================================
@@ -300,7 +310,11 @@ const Files = () => {
 
           {/* BACK */}
 
-          {scope !== "global" && (
+          {(
+            scope === "organization" ||
+            scope === "workspace" ||
+            scope === "project"
+          ) && (
             <button
               type="button"
               onClick={handleBack}
@@ -440,7 +454,11 @@ const Files = () => {
 
           {/* UPLOAD */}
 
-          {scope !== "global" && (
+          {(
+            scope === "organization" ||
+            scope === "workspace" ||
+            scope === "project"
+          ) && (
             <button
               type="button"
               onClick={() =>
@@ -530,8 +548,7 @@ const Files = () => {
           UPLOAD PANEL
       ======================================= */}
 
-      {showUpload &&
-        scope !== "global" && (
+      {showUpload && (
           <div className="mt-6">
 
             <div
@@ -753,7 +770,7 @@ const Files = () => {
                 : "Files from your accessible workspaces and projects will appear here."
             }
             showUpload={
-              scope !== "global"
+              true
             }
             onUpload={() =>
               setShowUpload(true)
