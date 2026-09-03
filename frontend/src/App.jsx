@@ -31,6 +31,9 @@ import Settings from "./pages/Settings";
 import OrganizationMember from "./pages/organization/OrganizationMembers";
 import OrganizationSettings from "./pages/organization/OrganizationSettings";
 import Chat from "./pages/Chat";
+import SuperAdminDashboard from "./pages/SuperAdminDashboard";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 
 
 const App = () => {
@@ -56,6 +59,16 @@ const App = () => {
         <Route
           path="/verify-email"
           element={<VerifyEmail />}
+        />
+
+        <Route
+          path="/forgot-password"
+          element={<ForgotPassword />}
+        />
+
+        <Route
+          path="/reset-password"
+          element={<ResetPassword />}
         />
 
 
@@ -157,7 +170,7 @@ const App = () => {
           />
 
           <Route
-            path="/workspaces/:workspaceId/documents/:documentId"
+            path="/documents/:documentId"
             element={<DocumentEditor />}
           />
 
@@ -263,6 +276,20 @@ const App = () => {
               to="/dashboard"
               replace
             />
+          }
+        />
+
+
+
+
+
+
+
+
+        <Route
+          path="/superadmin/dashboard"
+          element={
+            <SuperAdminDashboard />
           }
         />
 

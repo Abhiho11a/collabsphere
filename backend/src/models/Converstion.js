@@ -2,10 +2,20 @@ const mongoose = require("mongoose");
 
 const conversationSchema = new mongoose.Schema(
   {
-    // -------------------------------------------------
+    // =====================================================
+    // CONVERSATION TYPE
+    // =====================================================
+
+    type: {
+      type: String,
+      enum: ["direct", "organization"],
+      default: "direct",
+      index: true,
+    },
+
+    // =====================================================
     // ORGANIZATION
-    // Conversation belongs to an organization
-    // -------------------------------------------------
+    // =====================================================
 
     organization: {
       type: mongoose.Schema.Types.ObjectId,
@@ -14,24 +24,20 @@ const conversationSchema = new mongoose.Schema(
       index: true,
     },
 
-    // -------------------------------------------------
+    // =====================================================
     // PARTICIPANTS
-    // Exactly two users for individual chat
-    // -------------------------------------------------
+    // =====================================================
 
     participants: [
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
-        required: true,
       },
     ],
 
-    // -------------------------------------------------
-    // UNIQUE PARTICIPANT KEY
-    // Organization + sorted user IDs
-    // prevents duplicate conversations
-    // -------------------------------------------------
+    // =====================================================
+    // UNIQUE CONVERSATION KEY
+    // =====================================================
 
     participantKey: {
       type: String,
@@ -40,10 +46,9 @@ const conversationSchema = new mongoose.Schema(
       index: true,
     },
 
-    // -------------------------------------------------
+    // =====================================================
     // LAST MESSAGE
-    // Used for chat list preview
-    // -------------------------------------------------
+    // =====================================================
 
     lastMessage: {
       type: mongoose.Schema.Types.ObjectId,
@@ -61,18 +66,18 @@ const conversationSchema = new mongoose.Schema(
   }
 );
 
-// -----------------------------------------------------
-// PARTICIPANT LOOKUP
-// -----------------------------------------------------
+// =====================================================
+// INDEXES
+// =====================================================
+
+conversationSchema.index({
+  organization: 1,
+  type: 1,
+});
 
 conversationSchema.index({
   participants: 1,
 });
-
-// -----------------------------------------------------
-// ORGANIZATION + PARTICIPANTS
-// Useful for organization-scoped queries
-// -----------------------------------------------------
 
 conversationSchema.index({
   organization: 1,

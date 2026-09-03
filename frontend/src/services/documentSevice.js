@@ -17,7 +17,8 @@ const request = async (
       credentials: "include",
 
       headers: {
-        Accept: "application/json",
+        Accept:
+          "application/json",
 
         ...(options.body
           ? {
@@ -32,10 +33,6 @@ const request = async (
   );
 
 
-  // -----------------------------------------
-  // PARSE RESPONSE
-  // -----------------------------------------
-
   let data = null;
 
   try {
@@ -44,10 +41,6 @@ const request = async (
     data = null;
   }
 
-
-  // -----------------------------------------
-  // HANDLE ERROR
-  // -----------------------------------------
 
   if (!response.ok) {
     throw new Error(
@@ -62,28 +55,20 @@ const request = async (
 
 
 // =====================================================
-// GET MY ACCESSIBLE DOCUMENTS
+// GET MY DOCUMENTS
 // =====================================================
-// Returns:
-// - Personal documents
-// - Workspace documents
-// - Project documents
-//
-// Backend decides what the user is allowed
-// to see.
 
-export const getMyDocuments =
-  async () => {
-    const data =
-      await request(
-        `${API_BASE_URL}/documents/my`
-      );
+export const getMyDocuments = async (organizationId = null) => {
+  const query = organizationId
+    ? `?organizationId=${encodeURIComponent(organizationId)}`
+    : "";
 
-    return (
-      data?.documents ||
-      []
-    );
-  };
+  const data = await request(
+    `${API_BASE_URL}/documents/my${query}`
+  );
+
+  return data?.documents || [];
+};
 
 
 // =====================================================
@@ -170,97 +155,55 @@ export const getDocumentById =
 // =====================================================
 // CREATE DOCUMENT
 // =====================================================
-// Supported:
-//
-// Personal:
-// {
-//   title,
-//   content
-// }
-//
-// Workspace:
-// {
-//   title,
-//   content,
-//   workspaceId
-// }
-//
-// Project:
-// {
-//   title,
-//   content,
-//   projectId
-// }
-//
-// IMPORTANT:
-// For project documents the backend
-// determines the workspace from the project.
 
-export const createDocument =
-  async ({
-    title,
-    content = "",
-    workspaceId = null,
-    projectId = null,
-  }) => {
+export const createDocument = async ({
+  title,
+  content = "",
+  organizationId = null,
+  workspaceId = null,
+  projectId = null,
+  scope = null,
+  access = null,
+}) => {
+  if (!title?.trim()) {
+    throw new Error("Document title is required");
+  }
 
-    if (!title?.trim()) {
-      throw new Error(
-        "Document title is required"
-      );
-    }
-
-
-    // -----------------------------------------
-    // PREPARE BODY
-    // -----------------------------------------
-
-    const body = {
-      title: title.trim(),
-
-      content,
-    };
-
-
-    // -----------------------------------------
-    // WORKSPACE DOCUMENT
-    // -----------------------------------------
-
-    if (workspaceId) {
-      body.workspaceId =
-        workspaceId;
-    }
-
-
-    // -----------------------------------------
-    // PROJECT DOCUMENT
-    // -----------------------------------------
-
-    if (projectId) {
-      body.projectId =
-        projectId;
-    }
-
-
-    // -----------------------------------------
-    // CREATE
-    // -----------------------------------------
-
-    const data =
-      await request(
-        `${API_BASE_URL}/documents`,
-        {
-          method: "POST",
-
-          body:
-            JSON.stringify(body),
-        }
-      );
-
-
-    return data?.document;
+  const body = {
+    title: title.trim(),
+    content,
   };
 
+  if (organizationId) {
+    body.organizationId = organizationId;
+  }
+
+  if (workspaceId) {
+    body.workspaceId = workspaceId;
+  }
+
+  if (projectId) {
+    body.projectId = projectId;
+  }
+
+  if (scope) {
+    body.scope = scope;
+  }
+
+  if (access) {
+    body.access = access;
+  }
+
+  const data = await request(
+    `${API_BASE_URL}/documents`,
+    {
+      method: "POST",
+      body: JSON.stringify(body),
+    }
+  );
+
+  return data?.document;
+};
 
 // =====================================================
 // UPDATE DOCUMENT
@@ -277,7 +220,6 @@ export const updateDocument =
         "Document ID is required"
       );
     }
-
 
     const data =
       await request(
@@ -298,17 +240,205 @@ export const updateDocument =
 
 
 // =====================================================
-// DELETE DOCUMENT
+// UPDATE ACCESS
 // =====================================================
-//
-// Your current backend does NOT have a
-// deleteDocument controller/route yet.
-//
-// So we intentionally don't expose a
-// delete function here until the backend
-// is implemented.
-//
-// We'll add it later.
+
+export const updateDocumentAccess =
+  async (
+    documentId,
+    access
+  ) => {
+
+    if (!documentId) {
+      throw new Error(
+        "Document ID is required"
+      );
+    }
+
+    const data =
+      await request(
+        `${API_BASE_URL}/documents/${documentId}/access`,
+        {
+          method: "PATCH",
+
+          body:
+            JSON.stringify({
+              access,
+            }),
+        }
+      );
+
+    return data?.document;
+  };
+
+
+// =====================================================
+// COMMENTS
+// =====================================================
+
+export const getDocumentComments =
+  async (documentId) => {
+
+    const data =
+      await request(
+        `${API_BASE_URL}/documents/${documentId}/comments`
+      );
+
+    return (
+      data?.comments ||
+      []
+    );
+  };
+
+
+export const createDocumentComment =
+  async (
+    documentId,
+    comment
+  ) => {
+
+    const data =
+      await request(
+        `${API_BASE_URL}/documents/${documentId}/comments`,
+        {
+          method: "POST",
+
+          body:
+            JSON.stringify(
+              comment
+            ),
+        }
+      );
+
+    return data?.comment;
+  };
+
+
+export const resolveDocumentComment =
+  async (
+    documentId,
+    commentId,
+    resolved
+  ) => {
+
+    const data =
+      await request(
+        `${API_BASE_URL}/documents/${documentId}/comments/${commentId}`,
+        {
+          method: "PATCH",
+
+          body:
+            JSON.stringify({
+              resolved,
+            }),
+        }
+      );
+
+    return data?.comment;
+  };
+
+
+// =====================================================
+// VERSION HISTORY
+// =====================================================
+
+export const getDocumentVersions =
+  async (documentId) => {
+
+    const data =
+      await request(
+        `${API_BASE_URL}/documents/${documentId}/versions`
+      );
+
+    return (
+      data?.versions ||
+      []
+    );
+  };
+
+
+export const restoreDocumentVersion =
+  async (
+    documentId,
+    versionId
+  ) => {
+
+    const data =
+      await request(
+        `${API_BASE_URL}/documents/${documentId}/versions/${versionId}/restore`,
+        {
+          method: "POST",
+        }
+      );
+
+    return data?.document;
+  };
+
+
+// =====================================================
+// SUGGESTIONS
+// =====================================================
+
+export const getDocumentSuggestions =
+  async (documentId) => {
+
+    const data =
+      await request(
+        `${API_BASE_URL}/documents/${documentId}/suggestions`
+      );
+
+    return (
+      data?.suggestions ||
+      []
+    );
+  };
+
+
+export const createDocumentSuggestion =
+  async (
+    documentId,
+    suggestion
+  ) => {
+
+    const data =
+      await request(
+        `${API_BASE_URL}/documents/${documentId}/suggestions`,
+        {
+          method: "POST",
+
+          body:
+            JSON.stringify(
+              suggestion
+            ),
+        }
+      );
+
+    return data?.suggestion;
+  };
+
+
+export const updateDocumentSuggestion =
+  async (
+    documentId,
+    suggestionId,
+    status
+  ) => {
+
+    const data =
+      await request(
+        `${API_BASE_URL}/documents/${documentId}/suggestions/${suggestionId}`,
+        {
+          method: "PATCH",
+
+          body:
+            JSON.stringify({
+              status,
+            }),
+        }
+      );
+
+    return data?.suggestion;
+  };
 
 
 export default {
@@ -318,4 +448,16 @@ export default {
   getDocumentById,
   createDocument,
   updateDocument,
+  updateDocumentAccess,
+
+  getDocumentComments,
+  createDocumentComment,
+  resolveDocumentComment,
+
+  getDocumentVersions,
+  restoreDocumentVersion,
+
+  getDocumentSuggestions,
+  createDocumentSuggestion,
+  updateDocumentSuggestion,
 };

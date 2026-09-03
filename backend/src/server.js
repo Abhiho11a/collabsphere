@@ -5,6 +5,9 @@ const app = require("./app");
 const connectDatabase = require("./config/database");
 const { Server } = require("socket.io");
 
+const collaborationServer =
+  require("./collaboration/collaborationServer");
+
 const PORT = process.env.PORT || 5000;
 
 const server = http.createServer(app);
@@ -137,6 +140,7 @@ const startServer = async () => {
 
   });
 
+  collaborationServer.listen();
 };
 
 startServer();

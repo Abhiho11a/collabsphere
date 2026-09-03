@@ -797,6 +797,207 @@ const uploadOrganizationFile =
     }
   };
 
+// =====================================================
+// DELETE ORGANIZATION FILE
+// ORGANIZATION ADMIN ONLY
+// =====================================================
+
+// =====================================================
+// DELETE ORGANIZATION FILE
+// ORGANIZATION ADMIN ONLY
+// =====================================================
+
+const deleteOrganizationFile = async (
+  req,
+  res
+) => {
+  try {
+
+    const {
+      fileId,
+    } = req.params;
+
+
+    // ========================================
+    // FIND FILE
+    // ========================================
+
+    const file =
+      await File.findById(
+        fileId
+      );
+
+    if (!file) {
+
+      return res.status(404).json({
+        success: false,
+        message: "File not found",
+      });
+
+    }
+
+
+    // ========================================
+    // MAKE SURE THIS IS AN
+    // ORGANIZATION-LEVEL FILE
+    // ========================================
+
+    if (
+      !file.organization ||
+      file.workspace ||
+      file.project
+    ) {
+
+      return res.status(400).json({
+        success: false,
+        message:
+          "This is not an organization-level file",
+      });
+
+    }
+
+
+    // ========================================
+    // FIND ORGANIZATION
+    // ========================================
+
+    const organization =
+      await Organization.findById(
+        file.organization
+      ).select("_id");
+
+    if (!organization) {
+
+      return res.status(404).json({
+        success: false,
+        message:
+          "Organization not found",
+      });
+
+    }
+
+
+    // ========================================
+    // CHECK ORGANIZATION MEMBERSHIP
+    // ========================================
+
+    const membership =
+      await OrganizationMember.findOne({
+        organization:
+          file.organization,
+
+        user:
+          req.user._id,
+
+        status:
+          "Active",
+      });
+
+
+    if (!membership) {
+
+      return res.status(403).json({
+        success: false,
+        message:
+          "You do not have access to this organization",
+      });
+
+    }
+
+
+    // ========================================
+    // ORGANIZATION ADMIN ONLY
+    // ========================================
+
+    if (
+      membership.role !==
+      "organization_admin"
+    ) {
+
+      return res.status(403).json({
+        success: false,
+        message:
+          "Only organization admins can delete files",
+      });
+
+    }
+
+
+    // ========================================
+    // DELETE FROM CLOUDINARY
+    // ========================================
+
+    if (file.publicId) {
+
+      try {
+
+        await cloudinary.uploader.destroy(
+          file.publicId,
+          {
+            resource_type:
+              file.resourceType ||
+              "image",
+          }
+        );
+
+      } catch (cloudinaryError) {
+
+        console.error(
+          "Cloudinary delete error:",
+          cloudinaryError
+        );
+
+        // Don't stop database deletion
+        // if Cloudinary deletion fails.
+      }
+
+    }
+
+
+    // ========================================
+    // DELETE FROM DATABASE
+    // ========================================
+
+    await File.findByIdAndDelete(
+      fileId
+    );
+
+
+    // ========================================
+    // SUCCESS
+    // ========================================
+
+    return res.status(200).json({
+
+      success: true,
+
+      message:
+        "File deleted successfully",
+
+      fileId,
+
+    });
+
+
+  } catch (error) {
+
+    console.error(
+      "Delete organization file error:",
+      error
+    );
+
+    return res.status(500).json({
+
+      success: false,
+
+      message:
+        "Unable to delete file",
+
+    });
+
+  }
+};
+
 
 module.exports = {
 
@@ -804,6 +1005,8 @@ module.exports = {
 
   getOrganizationFiles,
   
-  uploadOrganizationFile
+  uploadOrganizationFile,
+
+  deleteOrganizationFile
 
 };

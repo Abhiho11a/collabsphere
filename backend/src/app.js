@@ -18,6 +18,8 @@ const messageRoutes = require("./routes/messageRoutes");
 const organizationRoutes = require("./routes/organizationRoutes");
 const organizationMemberRoutes = require("./routes/organizationMemberRoutes");
 const conversationRoutes = require("./routes/conversationRoutes");
+const superAdminRoutes =
+  require("./routes/superAdminRoutes");
 
 const app = express();
 
@@ -92,6 +94,17 @@ app.use(
 );
 
 app.use("/api", messageRoutes);
+
+
+
+
+
+
+
+app.use(
+  "/api/superadmin",
+  superAdminRoutes
+);
 
 
 module.exports = app;

@@ -7,6 +7,19 @@ const {
   getProjectDocuments,
   getDocumentById,
   updateDocument,
+  updateDocumentAccess,
+
+  getDocumentComments,
+  createDocumentComment,
+  resolveDocumentComment,
+
+  getDocumentVersions,
+  restoreDocumentVersion,
+
+  getDocumentSuggestions,
+  createDocumentSuggestion,
+  updateDocumentSuggestion,
+  deleteDocument,
 } = require("../controllers/documentController");
 
 const {
@@ -15,43 +28,27 @@ const {
 
 const router = express.Router();
 
-
 // =====================================================
-// GLOBAL DOCUMENT LIST
+// DOCUMENTS
 // =====================================================
-// Returns documents the current user can access:
-// Personal + Workspace + Project
 
+// My / organization documents
 router.get(
   "/my",
   protect,
   getMyDocuments
 );
 
-
-// =====================================================
-// CREATE DOCUMENT
-// =====================================================
-// Creates:
-// - Personal document
-// - Workspace document
-// - Project document
-//
-// The controller decides the scope based on
-// workspaceId / projectId.
-
+// Create document
 router.post(
   "/",
   protect,
   createDocument
 );
 
-
 // =====================================================
-// GET WORKSPACE DOCUMENTS
+// WORKSPACE DOCUMENTS
 // =====================================================
-// Workspace-level documents only.
-// Project documents are NOT returned here.
 
 router.get(
   "/workspaces/:workspaceId/documents",
@@ -59,11 +56,9 @@ router.get(
   getWorkspaceDocuments
 );
 
-
 // =====================================================
-// GET PROJECT DOCUMENTS
+// PROJECT DOCUMENTS
 // =====================================================
-// Project-level documents only.
 
 router.get(
   "/workspaces/:workspaceId/projects/:projectId/documents",
@@ -71,9 +66,78 @@ router.get(
   getProjectDocuments
 );
 
+// =====================================================
+// COMMENTS
+// =====================================================
+
+router.get(
+  "/:documentId/comments",
+  protect,
+  getDocumentComments
+);
+
+router.post(
+  "/:documentId/comments",
+  protect,
+  createDocumentComment
+);
+
+router.patch(
+  "/:documentId/comments/:commentId",
+  protect,
+  resolveDocumentComment
+);
 
 // =====================================================
-// GET SINGLE DOCUMENT
+// VERSION HISTORY
+// =====================================================
+
+router.get(
+  "/:documentId/versions",
+  protect,
+  getDocumentVersions
+);
+
+router.post(
+  "/:documentId/versions/:versionId/restore",
+  protect,
+  restoreDocumentVersion
+);
+
+// =====================================================
+// SUGGESTIONS
+// =====================================================
+
+router.get(
+  "/:documentId/suggestions",
+  protect,
+  getDocumentSuggestions
+);
+
+router.post(
+  "/:documentId/suggestions",
+  protect,
+  createDocumentSuggestion
+);
+
+router.patch(
+  "/:documentId/suggestions/:suggestionId",
+  protect,
+  updateDocumentSuggestion
+);
+
+// =====================================================
+// ACCESS
+// =====================================================
+
+router.patch(
+  "/:documentId/access",
+  protect,
+  updateDocumentAccess
+);
+
+// =====================================================
+// SINGLE DOCUMENT
 // =====================================================
 
 router.get(
@@ -82,16 +146,10 @@ router.get(
   getDocumentById
 );
 
-
-// =====================================================
-// UPDATE DOCUMENT
-// =====================================================
-
 router.patch(
   "/:documentId",
   protect,
   updateDocument
 );
-
-
+router.delete("/:documentId", protect, deleteDocument);
 module.exports = router;

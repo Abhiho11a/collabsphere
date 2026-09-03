@@ -4,6 +4,7 @@ const {
   getGlobalFiles,
   getOrganizationFiles,
   uploadOrganizationFile,
+  deleteOrganizationFile,
 } = require("../controllers/fileController");
 
 const {
@@ -50,5 +51,11 @@ router.post(
   uploadOrganizationFile
 );
 
+
+router.delete(
+  "/files/organization/:fileId",
+  protect,
+  deleteOrganizationFile
+);
 
 module.exports = router;

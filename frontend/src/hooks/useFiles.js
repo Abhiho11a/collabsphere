@@ -5,7 +5,7 @@ import {
 } from "react";
 
 import {
-  getOrganizationFiles,
+  getGlobalFiles,
   getWorkspaceFiles,
   getProjectFiles,
   uploadOrganizationFile,
@@ -13,6 +13,8 @@ import {
   uploadProjectFile,
   deleteWorkspaceFile,
   deleteProjectFile,
+  deleteOrganizationFile,
+  getOrganizationFiles,
 } from "../services/fileService";
 
 
@@ -353,89 +355,107 @@ const useFiles = ({
   // ========================================
   // DELETE FILE
   // ========================================
+const deleteFile =
+  useCallback(
+    async (fileId) => {
 
-  const deleteFile =
-    useCallback(
-      async (fileId) => {
+      if (!fileId) {
+        throw new Error(
+          "File ID is required."
+        );
+      }
 
-        if (!fileId) {
-          throw new Error(
-            "File ID is required."
+      try {
+
+        setDeleting(true);
+        setError("");
+
+        // ==================================
+        // WORKSPACE
+        // ==================================
+
+        if (
+          scope === "workspace"
+        ) {
+
+          await deleteWorkspaceFile(
+            workspaceId,
+            fileId
           );
-        }
-
-        try {
-
-          setDeleting(true);
-          setError("");
-
-          if (
-            scope === "workspace"
-          ) {
-
-            await deleteWorkspaceFile(
-              workspaceId,
-              fileId
-            );
-
-          } else if (
-            scope === "project"
-          ) {
-
-            await deleteProjectFile(
-              workspaceId,
-              projectId,
-              fileId
-            );
-
-          } else {
-
-            throw new Error(
-              "Organization files cannot be deleted from this page."
-            );
-
-          }
-
-          setFiles(
-            (currentFiles) =>
-              currentFiles.filter(
-                (file) =>
-                  String(
-                    file?._id ||
-                      file?.id
-                  ) !==
-                  String(fileId)
-              )
-          );
-
-        } catch (error) {
-
-          console.error(
-            "Delete file error:",
-            error
-          );
-
-          setError(
-            error?.message ||
-              "Unable to delete file."
-          );
-
-          throw error;
-
-        } finally {
-
-          setDeleting(false);
 
         }
 
-      },
-      [
-        scope,
-        workspaceId,
-        projectId,
-      ]
-    );
+        // ==================================
+        // PROJECT
+        // ==================================
 
+        else if (
+          scope === "project"
+        ) {
+
+          await deleteProjectFile(
+            workspaceId,
+            projectId,
+            fileId
+          );
+
+        }
+
+        // ==================================
+        // ORGANIZATION
+        // ==================================
+
+        else {
+
+          await deleteOrganizationFile(
+            fileId
+          );
+
+        }
+
+        // ==================================
+        // REMOVE FROM UI
+        // ==================================
+
+        setFiles(
+          (currentFiles) =>
+            currentFiles.filter(
+              (file) =>
+                String(
+                  file?._id ||
+                    file?.id
+                ) !==
+                String(fileId)
+            )
+        );
+
+      } catch (error) {
+
+        console.error(
+          "Delete file error:",
+          error
+        );
+
+        setError(
+          error?.message ||
+            "Unable to delete file."
+        );
+
+        throw error;
+
+      } finally {
+
+        setDeleting(false);
+
+      }
+
+    },
+    [
+      scope,
+      workspaceId,
+      projectId,
+    ]
+  );
 
   return {
     files,

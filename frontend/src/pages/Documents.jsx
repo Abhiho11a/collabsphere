@@ -16,7 +16,13 @@ import {
   RefreshCw,
   AlertCircle,
   ArrowLeft,
+  Building2,
+  Pencil,
+  Trash2,
+  Eye,
 } from "lucide-react";
+
+import DOMPurify from "dompurify";
 
 import {
   useNavigate,
@@ -58,6 +64,19 @@ const Documents = () => {
         "currentOrganizationId"
       ) || ""
   );
+
+
+  const [
+    organizationRole,
+    setOrganizationRole,
+    ] = useState(
+    () =>
+        localStorage.getItem(
+        "currentOrganizationRole"
+        ) || ""
+    );
+
+  const isOrganizationAdmin= () => {return organizationRole === "organization_admin";}
 
 
   // ===================================================
@@ -139,6 +158,35 @@ const Documents = () => {
   const [showCreateModal, setShowCreateModal] =
     useState(false);
 
+  // ===================================================
+  // DOCUMENT ACTION MENU
+  // ===================================================
+
+  const [
+    openMenuDocumentId,
+    setOpenMenuDocumentId,
+  ] = useState(null);
+
+
+  // ===================================================
+  // DOCUMENT PREVIEW
+  // ===================================================
+
+  const [
+    previewDocument,
+    setPreviewDocument,
+  ] = useState(null);
+
+
+  // ===================================================
+  // DELETE DOCUMENT
+  // ===================================================
+
+  const [
+    deletingDocumentId,
+    setDeletingDocumentId,
+  ] = useState(null);
+
 
   // ===================================================
   // FORM
@@ -147,6 +195,12 @@ const Documents = () => {
   const [form, setForm] = useState({
     title: "",
     content: "",
+
+    inheritViewAccess: true,
+    inheritEditAccess: false,
+
+    viewers: [],
+    editors: [],
   });
 
 
@@ -164,9 +218,19 @@ const Documents = () => {
   // ===================================================
 
   const fetchGlobalDocuments = async () => {
+    const currentOrganizationId =
+      localStorage.getItem(
+        "currentOrganizationId"
+      );
+
+    if (!currentOrganizationId) {
+      return [];
+    }
 
     const data =
-      await getMyDocuments();
+      await getMyDocuments(
+        currentOrganizationId
+      );
 
     return Array.isArray(data)
       ? data
@@ -245,10 +309,7 @@ const Documents = () => {
       // ======================================
 
       if (isGlobalDocuments) {
-
-        data =
-          await fetchOrganizationDocuments();
-
+        data = await fetchGlobalDocuments();
       }
 
       // ======================================
@@ -323,165 +384,6 @@ const Documents = () => {
 
   }, [organizationId]);
 
-
-  // ==========================================
-  // FETCH ALL PROJECT DOCUMENTS
-  // CURRENT ORGANIZATION ONLY
-  // ==========================================
-
-  const fetchOrganizationDocuments =
-    async () => {
-
-      const currentOrganizationId =
-        localStorage.getItem(
-          "currentOrganizationId"
-        ) || "";
-
-      if (!currentOrganizationId) {
-        return [];
-      }
-
-      setOrganizationId(
-        currentOrganizationId
-      );
-
-      // --------------------------------------
-      // GET ORGANIZATION WORKSPACES
-      // --------------------------------------
-
-      const organizationWorkspaces =
-        await getWorkspaces(
-          currentOrganizationId
-        );
-
-      // --------------------------------------
-      // GET PROJECTS FROM EACH WORKSPACE
-      // --------------------------------------
-
-      const projectResults =
-        await Promise.all(
-          organizationWorkspaces.map(
-            async (workspace) => {
-
-              const currentWorkspaceId =
-                workspace?._id ||
-                workspace?.id;
-
-              if (!currentWorkspaceId) {
-                return [];
-              }
-
-              try {
-
-                const workspaceProjects =
-                  await getWorkspaceProjects(
-                    currentWorkspaceId
-                  );
-
-                return (
-                  Array.isArray(
-                    workspaceProjects
-                  )
-                    ? workspaceProjects
-                    : []
-                ).map((project) => ({
-                  ...project,
-
-                  workspaceId:
-                    currentWorkspaceId,
-
-                  workspace,
-                }));
-
-              } catch (error) {
-
-                console.error(
-                  `Unable to load projects for workspace ${currentWorkspaceId}`,
-                  error
-                );
-
-                return [];
-              }
-            }
-          )
-        );
-
-      const organizationProjects =
-        projectResults.flat();
-
-      // --------------------------------------
-      // GET DOCUMENTS FROM EACH PROJECT
-      // --------------------------------------
-
-      const documentResults =
-        await Promise.all(
-          organizationProjects.map(
-            async (project) => {
-
-              const currentWorkspaceId =
-                project.workspaceId;
-
-              const currentProjectId =
-                project?._id ||
-                project?.id;
-
-              if (
-                !currentWorkspaceId ||
-                !currentProjectId
-              ) {
-                return [];
-              }
-
-              try {
-
-                const projectDocuments =
-                  await getProjectDocuments(
-                    currentWorkspaceId,
-                    currentProjectId
-                  );
-
-                return (
-                  Array.isArray(
-                    projectDocuments
-                  )
-                    ? projectDocuments
-                    : []
-                ).map((document) => ({
-                  ...document,
-
-                  workspaceId:
-                    currentWorkspaceId,
-
-                  projectId:
-                    currentProjectId,
-
-                  workspace:
-                    project.workspace,
-
-                  project,
-                }));
-
-              } catch (error) {
-
-                /*
-                * A project may be inaccessible to
-                * the current user. Don't let one
-                * project break the entire page.
-                */
-
-                console.warn(
-                  `Unable to load documents for project ${currentProjectId}`,
-                  error
-                );
-
-                return [];
-              }
-            }
-          )
-        );
-
-      return documentResults.flat();
-    };
 
   // ===================================================
   // LOAD WORKSPACE / PROJECT CONTEXT
@@ -602,14 +504,18 @@ const Documents = () => {
   // ===================================================
 
   const openCreateModal = () => {
-
     setForm({
       title: "",
       content: "",
+
+      inheritViewAccess: true,
+      inheritEditAccess: false,
+
+      viewers: [],
+      editors: [],
     });
 
     setShowCreateModal(true);
-
   };
 
 
@@ -632,137 +538,229 @@ const Documents = () => {
   // CREATE DOCUMENT
   // ===================================================
 
-  const handleCreateDocument =
-    async (event) => {
+  const handleCreateDocument = async (event) => {
+  event.preventDefault();
 
-      event.preventDefault();
+  if (!form.title.trim()) {
+    return;
+  }
 
+  try {
+    setCreating(true);
+    setError("");
 
-      if (!form.title.trim()) {
+    const currentOrganizationId =
+      localStorage.getItem(
+        "currentOrganizationId"
+      );
 
-        alert(
-          "Document title is required"
-        );
+    if (!currentOrganizationId) {
+      throw new Error(
+        "Please select an organization first"
+      );
+    }
 
-        return;
-      }
-
-
-      try {
-
-        setCreating(true);
-
-
-        // ---------------------------------------------
-        // PAYLOAD
-        // ---------------------------------------------
-
-        const payload = {
-          title:
-            form.title.trim(),
-
-          content:
-            form.content,
-        };
-
-
-        // ---------------------------------------------
-        // WORKSPACE DOCUMENT
-        // ---------------------------------------------
-
-        if (
-          isWorkspaceDocuments
-        ) {
-
-          payload.workspaceId =
-            workspaceId;
-
-        }
-
-
-        // ---------------------------------------------
-        // PROJECT DOCUMENT
-        // ---------------------------------------------
-
-        if (
-          isProjectDocuments
-        ) {
-
-          payload.projectId =
-            projectId;
-
-        }
-
-
-        // ---------------------------------------------
-        // GLOBAL PAGE
-        // ---------------------------------------------
-        // On /documents we create a personal
-        // document by default.
-        //
-        // We intentionally don't show
-        // workspace/project selectors here.
-        //
-        // Contextual creation happens from
-        // workspace/project pages.
-
-        const document =
-          await createDocument(
-            payload
-          );
-
-
-        // ---------------------------------------------
-        // ADD TO LIST
-        // ---------------------------------------------
-
-        if (document) {
-
-          setDocuments(
-            (previous) => [
-              document,
-              ...previous,
-            ]
-          );
-
-        }
-
-
-        // ---------------------------------------------
-        // RESET
-        // ---------------------------------------------
-
-        setForm({
-          title: "",
-          content: "",
-        });
-
-
-        setShowCreateModal(false);
-
-
-      } catch (error) {
-
-        console.error(
-          "Create document error:",
-          error
-        );
-
-
-        alert(
-          error.message ||
-          "Unable to create document"
-        );
-
-
-      } finally {
-
-        setCreating(false);
-
-      }
+    const body = {
+      title: form.title.trim(),
+      content: form.content,
     };
 
+    // ==========================================
+    // ORGANIZATION DOCUMENT
+    // ==========================================
 
+    if (isGlobalDocuments) {
+      body.organizationId =
+        currentOrganizationId;
+
+      body.scope = "organization";
+    }
+
+    // ==========================================
+    // WORKSPACE DOCUMENT
+    // ==========================================
+
+    if (isWorkspaceDocuments) {
+      if (!workspaceId) {
+        throw new Error(
+          "Workspace ID is required"
+        );
+      }
+
+      body.workspaceId = workspaceId;
+      body.scope = "workspace";
+    }
+
+    // ==========================================
+    // PROJECT DOCUMENT
+    // ==========================================
+
+    if (isProjectDocuments) {
+      if (!projectId) {
+        throw new Error(
+          "Project ID is required"
+        );
+      }
+
+      body.projectId = projectId;
+      body.scope = "project";
+    }
+
+    const response = await fetch(
+      `http://localhost:5000/api/documents`,
+      {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        data.message ||
+          "Unable to create document"
+      );
+    }
+
+    if (data.document) {
+      setDocuments((previous) => [
+        data.document,
+        ...previous,
+      ]);
+    }
+
+    setForm({
+      title: "",
+      content: "",
+    });
+
+    setShowCreateModal(false);
+
+    // Refresh from backend to guarantee
+    // the list matches database state.
+    await fetchDocuments();
+  } catch (error) {
+    console.error(
+      "Create document error:",
+      error
+    );
+
+    setError(
+      error?.message ||
+        "Unable to create document"
+    );
+  } finally {
+    setCreating(false);
+  }
+};
+
+// ===================================================
+// DELETE DOCUMENT
+// ===================================================
+
+const handleDeleteDocument = async (document) => {
+  if (!document) {
+    return;
+  }
+
+  const documentId = getId(document);
+
+  if (!documentId) {
+    setError("Invalid document ID");
+    return;
+  }
+
+  const confirmed = window.confirm(
+    `Are you sure you want to delete "${document.title}"?`
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+    setDeletingDocumentId(documentId);
+    setError("");
+
+    const response = await fetch(
+      `http://localhost:5000/api/documents/${documentId}`,
+      {
+        method: "DELETE",
+        credentials: "include",
+        headers: {
+          Accept: "application/json",
+        },
+      }
+    );
+
+    // -----------------------------------------
+    // Read response safely
+    // -----------------------------------------
+
+    const contentType =
+      response.headers.get("content-type") || "";
+
+    let data = null;
+
+    if (contentType.includes("application/json")) {
+      data = await response.json();
+    } else {
+      const text = await response.text();
+
+      console.error(
+        "Delete API returned non-JSON response:",
+        text
+      );
+
+      throw new Error(
+        `Delete API returned ${response.status} ${response.statusText}`
+      );
+    }
+
+    // -----------------------------------------
+    // Backend error
+    // -----------------------------------------
+
+    if (!response.ok) {
+      throw new Error(
+        data?.message ||
+          "Unable to delete document"
+      );
+    }
+
+    // -----------------------------------------
+    // Remove document from UI
+    // -----------------------------------------
+
+    setDocuments((previous) =>
+      previous.filter(
+        (item) =>
+          getId(item) !== documentId
+      )
+    );
+
+    setOpenMenuDocumentId(null);
+    setPreviewDocument(null);
+
+  } catch (error) {
+    console.error(
+      "Delete document error:",
+      error
+    );
+
+    setError(
+      error?.message ||
+        "Unable to delete document"
+    );
+  } finally {
+    setDeletingDocumentId(null);
+  }
+};
   // ===================================================
   // FILTER DOCUMENTS
   // ===================================================
@@ -1377,31 +1375,39 @@ const Documents = () => {
                       document
                     );
 
-
                   const ScopeIcon =
                     scope.icon;
-
 
                   const documentId =
                     getId(document);
 
+                  const canDelete =
+                    isOrganizationAdmin(
+                      document
+                    );
+
+                  const isDeleting =
+                    deletingDocumentId ===
+                    documentId;
 
                   return (
-
                     <div
-                      key={
-                        documentId
-                      }
-                      className="group grid cursor-pointer grid-cols-1 gap-3 border-b border-slate-800/70 px-5 py-4 transition last:border-b-0 hover:bg-slate-900/40 md:grid-cols-[minmax(350px,2fr)_1.3fr_1fr_120px_50px] md:items-center md:gap-4"
-                      onClick={() =>
-                        navigate(
-                          `/documents/${documentId}`
-                        )
-                      }
+                      key={documentId}
+                      className="group relative grid cursor-pointer grid-cols-1 gap-3 border-b border-slate-800/70 px-5 py-4 transition last:border-b-0 hover:bg-slate-900/40 md:grid-cols-[minmax(350px,2fr)_1.3fr_1fr_120px_50px] md:items-center md:gap-4"
+                      onClick={() => {
+                        setPreviewDocument(
+                          document
+                        );
+
+                        setOpenMenuDocumentId(
+                          null
+                        );
+                      }}
                     >
 
-
-                      {/* DOCUMENT */}
+                      {/* ==========================================
+                          DOCUMENT
+                      ========================================== */}
 
                       <div className="flex min-w-0 items-center gap-3">
 
@@ -1418,7 +1424,9 @@ const Documents = () => {
                         <div className="min-w-0">
 
                           <p className="truncate text-sm font-medium text-slate-200 group-hover:text-white">
+
                             {document.title}
+
                           </p>
 
 
@@ -1437,7 +1445,9 @@ const Documents = () => {
                       </div>
 
 
-                      {/* LOCATION */}
+                      {/* ==========================================
+                          LOCATION
+                      ========================================== */}
 
                       <div className="flex min-w-0 items-center gap-2">
 
@@ -1457,7 +1467,6 @@ const Documents = () => {
                             {scope.label}
                           </p>
 
-
                           <p className="text-xs text-slate-600">
                             {scope.type}
                           </p>
@@ -1467,7 +1476,9 @@ const Documents = () => {
                       </div>
 
 
-                      {/* STATUS */}
+                      {/* ==========================================
+                          STATUS
+                      ========================================== */}
 
                       <div>
 
@@ -1475,29 +1486,25 @@ const Documents = () => {
                           className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${
                             document.status ===
                             "Published"
-
                               ? "bg-emerald-500/10 text-emerald-400"
-
                               : document.status ===
                                 "Archived"
-
                               ? "bg-slate-800 text-slate-500"
-
                               : "bg-indigo-500/10 text-indigo-400"
                           }`}
                         >
 
-                          {
-                            document.status ||
-                            "Draft"
-                          }
+                          {document.status ||
+                            "Draft"}
 
                         </span>
 
                       </div>
 
 
-                      {/* UPDATED */}
+                      {/* ==========================================
+                          UPDATED
+                      ========================================== */}
 
                       <div className="text-sm text-slate-500">
 
@@ -1508,33 +1515,123 @@ const Documents = () => {
                       </div>
 
 
-                      {/* MENU */}
+                      {/* ==========================================
+                          ACTION MENU
+                      ========================================== */}
 
-                      <div className="flex justify-end">
+                      <div className="relative flex justify-end">
 
                         <button
-                          onClick={(
-                            event
-                          ) => {
+                          type="button"
+                          disabled={isDeleting}
+                          onClick={(event) => {
 
                             event.stopPropagation();
 
-                          }}
+                            setOpenMenuDocumentId(
+                              (previous) =>
+                                previous ===
+                                documentId
+                                  ? null
+                                  : documentId
+                            );
+
+                        }}
                           className="rounded-lg p-2 text-slate-600 transition hover:bg-slate-800 hover:text-white md:opacity-0 md:group-hover:opacity-100"
+                          title="More actions"
                         >
 
-                          <MoreHorizontal
-                            size={18}
-                          />
+                          {isDeleting ? (
+                            <Loader2
+                              size={17}
+                              className="animate-spin"
+                            />
+                          ) : (
+                            <MoreHorizontal
+                              size={18}
+                            />
+                          )}
 
                         </button>
+
+
+                        {/* ======================================
+                            DROPDOWN
+                        ====================================== */}
+
+                        {openMenuDocumentId ===
+                          documentId && (
+
+                          <div
+                            className="absolute right-0 top-10 z-50 w-44 overflow-hidden rounded-xl border border-slate-800 bg-[#0b1124] p-1.5 shadow-2xl"
+                            onClick={(event) =>
+                              event.stopPropagation()
+                            }
+                          >
+
+                            {/* EDIT */}
+
+                            <button
+                              type="button"
+                              onClick={() => {
+
+                                setOpenMenuDocumentId(
+                                  null
+                                );
+
+                                navigate(
+                                  `/documents/${documentId}`
+                                );
+
+                              }}
+                              className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-slate-300 transition hover:bg-slate-800 hover:text-white"
+                            >
+
+                              <Pencil
+                                size={15}
+                              />
+
+                              Edit document
+
+                            </button>
+
+
+                            {/* DELETE */}
+
+                            {canDelete && (
+                              <button
+                                type="button"
+                                onClick={() => {
+
+                                  setOpenMenuDocumentId(
+                                    null
+                                  );
+
+                                  handleDeleteDocument(
+                                    document
+                                  );
+
+                                }}
+                                className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-red-400 transition hover:bg-red-500/10 hover:text-red-300"
+                              >
+
+                                <Trash2
+                                  size={15}
+                                />
+
+                                Delete document
+
+                              </button>
+                            )}
+
+                          </div>
+
+                        )}
 
                       </div>
 
                     </div>
-
                   );
-
                 }
               )}
 
@@ -1642,26 +1739,20 @@ const Documents = () => {
                 <div className="flex items-center gap-3">
 
                   {isProjectDocuments ? (
-
                     <BriefcaseBusiness
                       size={17}
                       className="text-indigo-400"
                     />
-
                   ) : isWorkspaceDocuments ? (
-
                     <Folder
                       size={17}
                       className="text-indigo-400"
                     />
-
                   ) : (
-
-                    <User
+                    <Building2
                       size={17}
                       className="text-indigo-400"
                     />
-
                   )}
 
 
@@ -1675,14 +1766,10 @@ const Documents = () => {
                     <p className="mt-0.5 truncate text-sm font-medium text-slate-300">
 
                       {isProjectDocuments
-                        ? projectName ||
-                          "Project"
-
+                        ? projectName || "Project"
                         : isWorkspaceDocuments
-                        ? workspaceName ||
-                          "Workspace"
-
-                        : "Personal"}
+                        ? workspaceName || "Workspace"
+                        : "Organization"}
 
                     </p>
 
@@ -1840,9 +1927,321 @@ const Documents = () => {
 
       )}
 
+
+      {/* =================================================
+            DOCUMENT PREVIEW
+        ================================================= */}
+
+        {previewDocument && (
+          <DocumentPreviewSheet
+            document={
+              previewDocument
+            }
+
+            onClose={() => {
+              setPreviewDocument(
+                null
+              );
+            }}
+
+            onEdit={() => {
+              const documentId =
+                getId(
+                  previewDocument
+                );
+
+              navigate(
+                `/documents/${documentId}`
+              );
+            }}
+          />
+        )}
+
     </div>
   );
 };
 
 
 export default Documents;
+
+
+const DocumentPreviewSheet = ({
+  document,
+  onClose,
+  onEdit,
+}) => {
+  if (!document) {
+    return null;
+  }
+
+  const scope =
+    document.project
+      ? {
+          label:
+            document.project.name,
+          type: "Project",
+          icon: BriefcaseBusiness,
+        }
+      : document.workspace
+      ? {
+          label:
+            document.workspace.name,
+          type: "Workspace",
+          icon: Folder,
+        }
+      : {
+          label:
+            "Organization",
+          type: "Organization",
+          icon: Building2,
+        };
+
+  const ScopeIcon =
+    scope.icon;
+
+  const sanitizedContent =
+    DOMPurify.sanitize(
+      document.content || ""
+    );
+
+
+  return (
+    <div
+      className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 px-4 py-6 backdrop-blur-sm"
+      onClick={onClose}
+    >
+
+      <div
+        className="flex h-[90vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-slate-800 bg-[#080d1f] shadow-2xl"
+        onClick={(event) =>
+          event.stopPropagation()
+        }
+      >
+
+        {/* ==========================================
+            HEADER
+        ========================================== */}
+
+        <div className="flex shrink-0 items-center justify-between border-b border-slate-800 px-6 py-4">
+
+          <div className="flex min-w-0 items-center gap-3">
+
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-500/10">
+
+              <FileText
+                size={19}
+                className="text-indigo-400"
+              />
+
+            </div>
+
+
+            <div className="min-w-0">
+
+              <h2 className="truncate text-base font-semibold text-white">
+
+                {document.title}
+
+              </h2>
+
+
+              <div className="mt-1 flex items-center gap-2">
+
+                <ScopeIcon
+                  size={12}
+                  className="text-slate-500"
+                />
+
+                <span className="text-xs text-slate-500">
+
+                  {scope.label}
+
+                </span>
+
+                <span className="text-slate-700">
+                  •
+                </span>
+
+                <span className="text-xs text-slate-600">
+
+                  {scope.type}
+
+                </span>
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <div className="flex items-center gap-2">
+
+            {/* STATUS */}
+
+            <span
+              className={`hidden rounded-full px-2.5 py-1 text-xs font-medium sm:inline-flex ${
+                document.status ===
+                "Published"
+                  ? "bg-emerald-500/10 text-emerald-400"
+                  : document.status ===
+                    "Archived"
+                  ? "bg-slate-800 text-slate-500"
+                  : "bg-indigo-500/10 text-indigo-400"
+              }`}
+            >
+              {document.status ||
+                "Draft"}
+            </span>
+
+
+            {/* EDIT */}
+
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                onEdit();
+              }}
+              className="flex items-center gap-2 rounded-lg bg-indigo-500 px-3.5 py-2 text-sm font-medium text-white transition hover:bg-indigo-400"
+            >
+
+              <Pencil
+                size={14}
+              />
+
+              Edit
+
+            </button>
+
+
+            {/* CLOSE */}
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-800 hover:text-white"
+              title="Close preview"
+            >
+
+              <X size={18} />
+
+            </button>
+
+          </div>
+
+        </div>
+
+
+        {/* ==========================================
+            META
+        ========================================== */}
+
+        <div className="flex shrink-0 items-center gap-4 border-b border-slate-800/70 px-6 py-3">
+
+          <span className="text-xs text-slate-500">
+
+            Created{" "}
+
+            {document.createdAt
+              ? new Date(
+                  document.createdAt
+                ).toLocaleDateString(
+                  "en-US",
+                  {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  }
+                )
+              : "Unknown"}
+
+          </span>
+
+
+          <span className="text-slate-700">
+            •
+          </span>
+
+
+          <span className="text-xs text-slate-500">
+
+            Updated{" "}
+
+            {document.updatedAt
+              ? new Date(
+                  document.updatedAt
+                ).toLocaleDateString(
+                  "en-US",
+                  {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  }
+                )
+              : "Unknown"}
+
+          </span>
+
+        </div>
+
+
+        {/* ==========================================
+            CONTENT
+        ========================================== */}
+
+        <div className="flex-1 overflow-y-auto bg-[#020617] px-5 py-8 sm:px-10">
+
+          <article className="mx-auto min-h-full w-full max-w-4xl rounded-xl border border-slate-800 bg-[#080d1f] px-6 py-8 shadow-xl sm:px-10 sm:py-10">
+
+            {/* DOCUMENT TITLE */}
+
+            <h1 className="mb-8 text-3xl font-bold tracking-tight text-white">
+
+              {document.title}
+
+            </h1>
+
+
+            {/* DOCUMENT CONTENT */}
+
+            {document.content ? (
+
+              <div
+                className="document-preview prose prose-invert max-w-none text-slate-300"
+                dangerouslySetInnerHTML={{
+                  __html:
+                    sanitizedContent,
+                }}
+              />
+
+            ) : (
+
+              <div className="flex min-h-[300px] items-center justify-center">
+
+                <div className="text-center">
+
+                  <FileText
+                    size={28}
+                    className="mx-auto text-slate-700"
+                  />
+
+                  <p className="mt-4 text-sm text-slate-500">
+                    This document is empty.
+                  </p>
+
+                </div>
+
+              </div>
+
+            )}
+
+          </article>
+
+        </div>
+
+      </div>
+
+    </div>
+  );
+};

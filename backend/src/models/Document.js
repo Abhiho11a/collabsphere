@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 const documentSchema = new mongoose.Schema(
   {
     // ========================================
-    // DOCUMENT TITLE
+    // BASIC INFORMATION
     // ========================================
 
     title: {
@@ -14,22 +14,52 @@ const documentSchema = new mongoose.Schema(
       maxlength: 200,
     },
 
-
-    // ========================================
-    // DOCUMENT CONTENT
-    // ========================================
-
+    // Legacy/rendered HTML representation.
+    // Useful for previews/search/fallback.
     content: {
       type: String,
       default: "",
     },
 
+    // ========================================
+    // DOCUMENT VERSION
+    // ========================================
+
+    version: {
+      type: Number,
+      default: 1,
+      min: 1,
+    },
+
+    // ========================================
+    // DOCUMENT SCOPE
+    // ========================================
+
+    scope: {
+      type: String,
+      enum: [
+        "organization",
+        "workspace",
+        "project",
+      ],
+      required: true,
+      index: true,
+    },
+
+    // ========================================
+    // ORGANIZATION
+    // ========================================
+
+    organization: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Organization",
+      required: true,
+      index: true,
+    },
 
     // ========================================
     // WORKSPACE
     // ========================================
-    // null  → Personal document
-    // ID    → Workspace or Project document
 
     workspace: {
       type: mongoose.Schema.Types.ObjectId,
@@ -38,12 +68,9 @@ const documentSchema = new mongoose.Schema(
       index: true,
     },
 
-
     // ========================================
     // PROJECT
     // ========================================
-    // null  → Personal or Workspace document
-    // ID    → Project document
 
     project: {
       type: mongoose.Schema.Types.ObjectId,
@@ -51,7 +78,6 @@ const documentSchema = new mongoose.Schema(
       default: null,
       index: true,
     },
-
 
     // ========================================
     // CREATED BY
@@ -64,6 +90,47 @@ const documentSchema = new mongoose.Schema(
       index: true,
     },
 
+    // ========================================
+    // DOCUMENT ACCESS
+    // ========================================
+
+    access: {
+      viewers: [
+        {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+        },
+      ],
+
+      editors: [
+        {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+        },
+      ],
+
+      // Scope members can view
+      inheritViewAccess: {
+        type: Boolean,
+        default: true,
+      },
+
+      // Scope members CANNOT edit by default.
+      // Access can be explicitly granted.
+      inheritEditAccess: {
+        type: Boolean,
+        default: false,
+      },
+    },
+
+    // ========================================
+    // COLLABORATIVE YJS STATE
+    // ========================================
+
+    collaborationState: {
+      type: Buffer,
+      default: null,
+    },
 
     // ========================================
     // STATUS
@@ -78,7 +145,6 @@ const documentSchema = new mongoose.Schema(
       ],
       default: "Draft",
     },
-
 
     // ========================================
     // ACTIVE
@@ -96,40 +162,38 @@ const documentSchema = new mongoose.Schema(
   }
 );
 
-
 // ========================================
 // INDEXES
 // ========================================
 
-// Project documents
 documentSchema.index({
-  project: 1,
-  createdAt: -1,
+  organization: 1,
+  scope: 1,
+  updatedAt: -1,
 });
 
-
-// Workspace documents
 documentSchema.index({
+  organization: 1,
   workspace: 1,
-  createdAt: -1,
+  updatedAt: -1,
 });
 
+documentSchema.index({
+  organization: 1,
+  project: 1,
+  updatedAt: -1,
+});
 
-// Documents created by a user
 documentSchema.index({
   createdBy: 1,
   createdAt: -1,
 });
 
-
-// Useful for querying documents
-// belonging to a workspace/project combination
 documentSchema.index({
   workspace: 1,
   project: 1,
   createdAt: -1,
 });
-
 
 module.exports = mongoose.model(
   "Document",

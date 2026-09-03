@@ -36,6 +36,7 @@ const Files = () => {
 
   const navigate = useNavigate();
 
+
   const {
     workspaceId,
     projectId,
@@ -51,6 +52,14 @@ const Files = () => {
       ) || ""
   );
 
+  const organizationRole =
+    localStorage.getItem(
+      "currentOrganizationRole"
+    ) || "";
+
+  const isOrganizationAdmin =
+    organizationRole ===
+    "organization_admin";
 
   // ==========================================
   // DETERMINE SCOPE
@@ -213,7 +222,15 @@ const Files = () => {
 
   const handleDelete =
     async (fileId) => {
+    console.log(
+      "DELETE FILE ID:",
+      fileId
+    );
 
+    console.log(
+      "CURRENT FILES:",
+      files
+    );
       const confirmed =
         window.confirm(
           "Are you sure you want to delete this file?"
@@ -737,11 +754,11 @@ const Files = () => {
 
           <FileGrid
             files={filteredFiles}
-            onDelete={
-              handleDelete
-            }
+            onDelete={handleDelete}
             canDelete={
-              scope !== "global"
+              scope === "organization"
+                ? isOrganizationAdmin
+                : true
             }
           />
 

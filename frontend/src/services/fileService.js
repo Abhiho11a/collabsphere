@@ -309,3 +309,40 @@ export const uploadOrganizationFile =
 
     return data?.file;
   };
+
+
+  export const deleteOrganizationFile = async (
+  fileId
+) => {
+  if (!fileId) {
+    throw new Error("File ID is required.");
+  }
+
+  const response = await fetch(
+    `${API_BASE_URL}/files/organization/${fileId}`,
+    {
+      method: "DELETE",
+      credentials: "include",
+      headers: {
+        Accept: "application/json",
+      },
+    }
+  );
+
+  let data = null;
+
+  try {
+    data = await response.json();
+  } catch {
+    data = null;
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      data?.message ||
+        "Unable to delete file."
+    );
+  }
+
+  return data;
+};
