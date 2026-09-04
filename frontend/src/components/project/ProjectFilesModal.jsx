@@ -16,6 +16,11 @@ import {
   Loader2,
 } from "lucide-react";
 
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL ||
+  "http://localhost:5000/api";
+
+
 const ProjectFilesModal = ({
   files = [],
   setFiles,
@@ -175,7 +180,7 @@ const ProjectFilesModal = ({
         formData.append("file", file);
 
         const response = await fetch(
-        `http://localhost:5000/api/workspaces/${workspaceId}/projects/${projectId}/files`,
+        `${API_BASE_URL}/workspaces/${workspaceId}/projects/${projectId}/files`,
         {
             method: "POST",
             credentials: "include",
@@ -286,7 +291,7 @@ const ProjectFilesModal = ({
             setDeleting(true);
 
             const response = await fetch(
-            `http://localhost:5000/api/workspaces/${workspaceId}/projects/${projectId}/files/${deleteFile.id}`,
+            `${API_BASE_URL}/workspaces/${workspaceId}/projects/${projectId}/files/${deleteFile.id}`,
             {
                 method: "DELETE",
                 credentials: "include",

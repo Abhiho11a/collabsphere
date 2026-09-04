@@ -42,6 +42,10 @@ import {
 } from "../services/dashboardService";
 
 
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL ||
+  "http://localhost:5000/api";
+
 // =====================================================
 // DOCUMENTS PAGE
 // =====================================================
@@ -607,7 +611,7 @@ const Documents = () => {
     }
 
     const response = await fetch(
-      `http://localhost:5000/api/documents`,
+      `${API_BASE_URL}/documents`,
       {
         method: "POST",
         credentials: "include",
@@ -688,7 +692,7 @@ const handleDeleteDocument = async (document) => {
     setError("");
 
     const response = await fetch(
-      `http://localhost:5000/api/documents/${documentId}`,
+      `${API_BASE_URL}/documents/${documentId}`,
       {
         method: "DELETE",
         credentials: "include",

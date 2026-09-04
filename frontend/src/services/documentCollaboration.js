@@ -8,7 +8,7 @@ export const createDocumentCollaboration = ({
   const ydoc = new Y.Doc();
 
   const provider = new HocuspocusProvider({
-    url: "...",
+    url: import.meta.env.VITE_HOCUSPOCUS_URL,
     name: `document:${documentId}`,
     document: ydoc,
     token,

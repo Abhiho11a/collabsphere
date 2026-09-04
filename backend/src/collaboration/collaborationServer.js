@@ -9,6 +9,8 @@ const OrganizationMember = require("../models/OrganizationMember");
 const WorkspaceMember = require("../models/WorkspaceMember");
 const ProjectMember = require("../models/ProjectMember");
 
+const { Database } = require("@hocuspocus/extension-database");
+
 const {
   verifyAccessToken,
 } = require("../utils/token");
@@ -61,10 +63,30 @@ const extractAccessToken = (request) => {
 // AUTHENTICATE USER
 // =====================================================
 
-const authenticateUser = async (request) => {
+const authenticateUser = async ({
+  token,
+  request,
+}) => {
 
-  const accessToken =
-    extractAccessToken(request);
+  // ---------------------------------------------------
+  // PREFERRED METHOD:
+  // Token supplied by HocuspocusProvider
+  // ---------------------------------------------------
+
+  let accessToken = token;
+
+  // ---------------------------------------------------
+  // FALLBACK:
+  // Read accessToken from cookie
+  //
+  // This keeps local development working even before
+  // the frontend provider is updated.
+  // ---------------------------------------------------
+
+  if (!accessToken) {
+    accessToken =
+      extractAccessToken(request);
+  }
 
   if (!accessToken) {
     throw new Error(
@@ -113,7 +135,6 @@ const authenticateUser = async (request) => {
 
   return user;
 };
-
 
 // =====================================================
 // DOCUMENT ACCESS CHECK
@@ -297,9 +318,43 @@ const collaborationServer =
   new HocuspocusServer({
 
     port:
-      Number(
-        process.env.COLLABORATION_PORT
-      ) || 1234,
+      Number(process.env.COLLABORATION_PORT) || 1234,
+
+    extensions: [
+      new Database({
+        fetch: async ({ documentName }) => {
+
+          const documentId =
+            documentName.replace("document:", "");
+
+          const document =
+            await Document.findById(documentId);
+
+          if (!document) {
+            return null;
+          }
+
+          return document.collaborationState || null;
+        },
+
+        store: async ({
+          documentName,
+          state,
+        }) => {
+
+          const documentId =
+            documentName.replace("document:", "");
+
+          await Document.findByIdAndUpdate(
+            documentId,
+            {
+              collaborationState:
+                Buffer.from(state),
+            }
+          );
+        },
+      }),
+    ],
 
 
     // =================================================
@@ -310,6 +365,7 @@ const collaborationServer =
       request,
       connection,
       documentName,
+      token,
     }) {
 
       try {
@@ -319,9 +375,10 @@ const collaborationServer =
         // ---------------------------------------------
 
         const user =
-          await authenticateUser(
-            request
-          );
+          await authenticateUser({
+            token,
+            request,
+          });
 
 
         // ---------------------------------------------
@@ -530,7 +587,10 @@ const collaborationServer =
     );
     },
 
+    
+
   });
+  
 
 
 module.exports =

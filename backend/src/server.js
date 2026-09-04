@@ -5,8 +5,6 @@ const app = require("./app");
 const connectDatabase = require("./config/database");
 const { Server } = require("socket.io");
 
-const collaborationServer =
-  require("./collaboration/collaborationServer");
 
 const PORT = process.env.PORT || 5000;
 
@@ -196,7 +194,7 @@ const startServer = async () => {
 
   await connectDatabase();
 
-  server.listen(PORT, () => {
+  server.listen(PORT, "0.0.0.0", () => {
 
     console.log(
       `🚀 COLLABSPHERE backend running on port ${PORT}`
@@ -204,7 +202,5 @@ const startServer = async () => {
 
   });
 
-  collaborationServer.listen();
 };
-
-startServer();
+startServer()

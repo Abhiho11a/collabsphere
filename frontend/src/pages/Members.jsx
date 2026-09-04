@@ -21,7 +21,10 @@ import {
 } from "react";
 import { useParams } from "react-router-dom";
 
-
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL ||
+  "http://localhost:5000/api";
+  
 const Members = () => {
   const { workspaceId } = useParams();
 
@@ -35,7 +38,7 @@ const Members = () => {
     setPageError("");
 
     const response = await fetch(
-      `http://localhost:5000/api/workspaces/${workspaceId}/members`,
+      `${API_BASE_URL}/workspaces/${workspaceId}/members`,
       {
         method: "GET",
         credentials: "include",
@@ -276,7 +279,7 @@ const Members = () => {
     setInviteError("");
 
     const response = await fetch(
-      `http://localhost:5000/api/workspaces/${workspaceId}/members`,
+      `${API_BASE_URL}/workspaces/${workspaceId}/members`,
       {
         method: "POST",
         credentials: "include",

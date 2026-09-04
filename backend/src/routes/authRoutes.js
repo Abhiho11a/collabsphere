@@ -14,6 +14,7 @@ const {
   googleLogin,
   googleCallback,
   updateProfile,
+  getCollaborationToken,
 } = require("../controllers/authController");
 
 const {
@@ -98,6 +99,12 @@ router.patch(
   "/profile",
   protect,
   updateProfile
+);
+
+router.get(
+  "/collaboration-token",
+  protect,
+  getCollaborationToken
 );
 
 module.exports = router;

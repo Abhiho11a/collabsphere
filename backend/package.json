@@ -28,12 +28,17 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node src/server.js",
-    "dev": "nodemon src/server.js",
-    "migrate:organizations": "node scripts/migrateWorkspacesToOrganizations.js"
-  },
+  "start": "node src/server.js",
+  "start:collaboration": "node src/collaborationServer.js",
+  "dev": "nodemon src/server.js",
+  "dev:collaboration": "nodemon src/collaborationServer.js",
+  "migrate:organizations": "node scripts/migrateWorkspacesToOrganizations.js"
+},
   "keywords": [],
   "author": "",
   "license": "ISC",
+  "engines": {
+  "node": ">=22 <25"
+},
   "type": "commonjs"
 }

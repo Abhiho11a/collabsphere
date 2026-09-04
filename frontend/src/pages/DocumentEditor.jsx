@@ -94,7 +94,7 @@ const API_BASE_URL =
   "http://localhost:5000/api";
 
 const COLLABORATION_URL =
-  import.meta.env.VITE_COLLABORATION_URL ||
+  import.meta.env.VITE_HOCUSPOCUS_URL ||
   "ws://localhost:1234";
 
 /* =========================================================
@@ -1797,6 +1797,33 @@ const DocumentEditor = () => {
       `document:${documentId}`,
 
     document: ydoc,
+
+
+    token: async () => {
+      const response = await fetch(
+        `${API_BASE_URL}/auth/collaboration-token`,
+        {
+          credentials: "include",
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          "Unable to get collaboration token"
+        );
+      }
+
+      const data =
+        await response.json();
+
+      if (!data?.token) {
+        throw new Error(
+          "Collaboration token was not returned"
+        );
+      }
+
+      return data.token;
+    },
 
     onAuthenticated() {
       console.log(

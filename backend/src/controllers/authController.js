@@ -1230,6 +1230,42 @@ const updateProfile = async (req, res) => {
   }
 };
 
+
+const getCollaborationToken = async (req, res) => {
+  try {
+    const user = req.user;
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required",
+      });
+    }
+
+    if (!user.isActive) {
+      return res.status(403).json({
+        success: false,
+        message: "This account has been deactivated",
+      });
+    }
+
+    const token = generateAccessToken(user._id.toString());
+
+    return res.status(200).json({
+      success: true,
+      token,
+    });
+  } catch (error) {
+    console.error("Get collaboration token error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Unable to generate collaboration token",
+    });
+  }
+};
+
+
 // ========================================
 // EXPORTS
 // ========================================
@@ -1238,6 +1274,7 @@ module.exports = {
   register,
   login,
   getCurrentUser,
+  getCollaborationToken,
   refreshAccessToken,
   logout,
   getSessions,

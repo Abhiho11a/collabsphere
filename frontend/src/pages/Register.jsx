@@ -4,6 +4,11 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { registerUser } from "../services/auth";
 
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL ||
+  "http://localhost:5000/api";
+  
+  
 const Register = () => {
   const navigate = useNavigate();
 
@@ -132,7 +137,7 @@ const Register = () => {
 
   const handleGoogleLogin = () => {
     window.location.href =
-      "http://localhost:5000/api/auth/google";
+      `${API_BASE_URL}/auth/google`;
   };
 
 
