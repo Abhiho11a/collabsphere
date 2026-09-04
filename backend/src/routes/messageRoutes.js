@@ -7,6 +7,7 @@ const {
   sendProjectMessage,
   editMessage,
   deleteMessage,
+  toggleReaction,
 } = require("../controllers/messageController");
 const { protect } = require("../middleware/authMiddleware");
 
@@ -43,6 +44,12 @@ router.delete(
   "/messages/:messageId",
   protect,
   deleteMessage
+);
+
+router.post(
+  "/messages/:messageId/reaction",
+  protect,
+  toggleReaction
 );
 
 module.exports = router;

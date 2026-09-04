@@ -3,6 +3,13 @@ const WorkspaceMember = require("../models/WorkspaceMember");
 const User = require("../models/User");
 const OrganizationMember = require("../models/OrganizationMember");
 
+const {
+  createNotification,
+  emitNotification,
+} = require(
+  "./notificationController"
+);
+
 
 // ========================================
 // HELPER: CHECK WORKSPACE ACCESS
@@ -296,6 +303,54 @@ const addWorkspaceMember = async (
         role: memberRole,
         status: "Active",
       });
+
+
+      // =====================================================
+  // CREATE WORKSPACE INVITATION NOTIFICATION
+  // =====================================================
+
+  const notification =
+    await createNotification({
+      recipient:
+        user._id,
+
+      actor:
+        req.user._id,
+
+      type:
+        "workspace_invitation",
+
+      title:
+        "Workspace Invitation",
+
+      message:
+        `You were added to ${workspace.name} as ${memberRole}.`,
+
+      entityType:
+        "workspace",
+
+      entityId:
+        workspace._id,
+
+      actionUrl:
+        `/workspaces/${workspace._id}`,
+
+      metadata: {
+        workspaceId:
+          workspace._id,
+
+        workspaceName:
+          workspace.name,
+
+        role:
+          memberRole,
+      },
+    });
+
+  emitNotification(
+    req,
+    notification
+  );
 
     return res.status(201).json({
       success: true,

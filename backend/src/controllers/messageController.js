@@ -5,7 +5,10 @@ const Project = require("../models/Project");
 const ProjectMember = require("../models/ProjectMember");
 const WorkspaceMember = require("../models/WorkspaceMember");
 
+const OrganizationMember =
+  require("../models/OrganizationMember");
 
+  
 // =====================================================
 // HELPER
 // Check whether user is an ACTIVE project member
@@ -706,6 +709,303 @@ const deleteMessage = async (
   }
 };
 
+// =====================================================
+// TOGGLE MESSAGE REACTION
+//
+// POST
+// /api/messages/:messageId/reaction
+// =====================================================
+
+const toggleReaction = async (
+  req,
+  res
+) => {
+  try {
+    const {
+      messageId,
+    } = req.params;
+
+    const {
+      emoji,
+    } = req.body || {};
+
+    const userId =
+      req.user._id;
+
+    // -------------------------------------------------
+    // VALIDATE MESSAGE ID
+    // -------------------------------------------------
+
+    if (
+      !mongoose.Types.ObjectId.isValid(
+        messageId
+      )
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Invalid message ID",
+      });
+    }
+
+    // -------------------------------------------------
+    // VALIDATE EMOJI
+    // -------------------------------------------------
+
+    if (
+      !emoji ||
+      typeof emoji !==
+        "string"
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Emoji is required",
+      });
+    }
+
+    // -------------------------------------------------
+    // FIND MESSAGE
+    // -------------------------------------------------
+
+    const message =
+      await Message.findById(
+        messageId
+      );
+
+    if (!message) {
+      return res.status(404).json({
+        success: false,
+        message:
+          "Message not found",
+      });
+    }
+
+    // -------------------------------------------------
+    // BLOCK REACTION ON DELETED MESSAGE
+    // -------------------------------------------------
+
+    if (
+      message.isDeleted
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Cannot react to a deleted message",
+      });
+    }
+
+    // -------------------------------------------------
+    // ORGANIZATION ACCESS
+    // -------------------------------------------------
+
+    if (
+      message.organization
+    ) {
+      const membership =
+        await OrganizationMember.findOne(
+          {
+            organization:
+              message.organization,
+
+            user: userId,
+
+            status:
+              "Active",
+          }
+        );
+
+      if (!membership) {
+        return res.status(403).json({
+          success: false,
+          message:
+            "You do not have access to this organization",
+        });
+      }
+    }
+
+    // -------------------------------------------------
+    // INITIALIZE REACTIONS
+    // -------------------------------------------------
+
+    if (
+      !Array.isArray(
+        message.reactions
+      )
+    ) {
+      message.reactions = [];
+    }
+
+    // -------------------------------------------------
+    // FIND EMOJI REACTION
+    // -------------------------------------------------
+
+    let reaction =
+      message.reactions.find(
+        (item) =>
+          item.emoji === emoji
+      );
+
+    // -------------------------------------------------
+    // CREATE REACTION
+    // -------------------------------------------------
+
+    if (!reaction) {
+      message.reactions.push({
+        emoji,
+        users: [
+          userId,
+        ],
+      });
+    }
+
+    // -------------------------------------------------
+    // EXISTING REACTION
+    // -------------------------------------------------
+
+    else {
+      if (
+        !Array.isArray(
+          reaction.users
+        )
+      ) {
+        reaction.users = [];
+      }
+
+      const alreadyReacted =
+        reaction.users.some(
+          (id) =>
+            id.toString() ===
+            userId.toString()
+        );
+
+      // -----------------------------------------------
+      // REMOVE USER REACTION
+      // -----------------------------------------------
+
+      if (
+        alreadyReacted
+      ) {
+        reaction.users =
+          reaction.users.filter(
+            (id) =>
+              id.toString() !==
+              userId.toString()
+          );
+
+        // Remove emoji entirely
+        // if nobody is using it.
+        if (
+          reaction.users
+            .length === 0
+        ) {
+          message.reactions =
+            message.reactions.filter(
+              (item) =>
+                item.emoji !==
+                emoji
+            );
+        }
+      }
+
+      // -----------------------------------------------
+      // ADD USER REACTION
+      // -----------------------------------------------
+
+      else {
+        reaction.users.push(
+          userId
+        );
+      }
+    }
+
+    await message.save();
+
+    // -------------------------------------------------
+    // POPULATE
+    // -------------------------------------------------
+
+    await message.populate(
+      "sender",
+      "name email avatar"
+    );
+
+    if (
+      message.replyTo
+    ) {
+      await message.populate(
+        "replyTo",
+        "content sender createdAt"
+      );
+    }
+
+    // -------------------------------------------------
+    // SOCKET
+    // -------------------------------------------------
+
+    const io =
+      req.app.get("io");
+
+    if (io) {
+      if (
+        message.organization
+      ) {
+        io.to(
+          `organization:${message.organization}`
+        ).emit(
+          "chat-reaction",
+          message
+        );
+      }
+
+      if (
+        message.conversation
+      ) {
+        io.to(
+          `conversation:${message.conversation}`
+        ).emit(
+          "chat-reaction",
+          message
+        );
+      }
+
+      if (
+        message.project
+      ) {
+        io.to(
+          `project:${message.project}`
+        ).emit(
+          "chat-reaction",
+          message
+        );
+      }
+    }
+
+    // -------------------------------------------------
+    // RESPONSE
+    // -------------------------------------------------
+
+    return res.status(200).json({
+      success: true,
+      message:
+        "Reaction updated successfully",
+      data: message,
+    });
+
+  } catch (error) {
+    console.error(
+      "Toggle reaction error:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message:
+        "Unable to update reaction",
+    });
+  }
+};
+
 
 // =====================================================
 // EXPORT
@@ -716,4 +1016,5 @@ module.exports = {
   sendProjectMessage,
   editMessage,
   deleteMessage,
+  toggleReaction,
 };

@@ -126,7 +126,7 @@ const Topbar = ({
 
         {/* Search */}
 
-        <button
+        {/* <button
           type="button"
           className="group flex items-center gap-2 rounded-lg border border-transparent px-2.5 py-2 text-slate-400 transition hover:border-slate-800 hover:bg-slate-900 hover:text-slate-200 sm:border-slate-800 sm:bg-slate-900/50 sm:px-3"
         >
@@ -144,23 +144,23 @@ const Topbar = ({
             Ctrl K
           </kbd>
 
-        </button>
+        </button> */}
 
 
         {/* Help */}
 
-        <button
+        {/* <button
           type="button"
           className="hidden rounded-lg p-2.5 text-slate-400 transition hover:bg-slate-800 hover:text-slate-200 sm:block"
           title="Help"
         >
           <HelpCircle size={18} />
-        </button>
+        </button> */}
 
 
         {/* Notification */}
 
-        <button
+        {/* <button
           type="button"
           onClick={() =>
             navigate("/notifications")
@@ -173,7 +173,7 @@ const Topbar = ({
 
           <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-indigo-500 ring-2 ring-slate-950" />
 
-        </button>
+        </button> */}
 
 
         {/* Divider */}

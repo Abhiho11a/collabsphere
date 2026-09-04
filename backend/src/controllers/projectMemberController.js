@@ -5,7 +5,12 @@ const ProjectMember = require("../models/ProjectMember");
 const WorkspaceMember = require("../models/WorkspaceMember");
 const User = require("../models/User");
 const Activity = require("../models/Activity");
-
+const {
+  createNotification,
+  emitNotification,
+} = require(
+  "./notificationController"
+);
 
 // =====================================================
 // HELPER
@@ -464,6 +469,55 @@ const addProjectMember = async (req, res) => {
         role,
         status: "Active",
       });
+
+
+      // =====================================================
+  // CREATE PROJECT INVITATION NOTIFICATION
+  // =====================================================
+
+  const notification =
+    await createNotification({
+      recipient:
+        user._id,
+
+      actor:
+        req.user._id,
+
+      type:
+        "project_invitation",
+
+      title:
+        "Project Invitation",
+
+      message:
+        `You were added to ${project.name} as ${role}.`,
+
+      entityType:
+        "project",
+
+      entityId:
+        project._id,
+
+      actionUrl:
+        `/workspaces/${workspaceId}/projects/${projectId}`,
+
+      metadata: {
+        projectId:
+          project._id,
+
+        projectName:
+          project.name,
+
+        workspaceId,
+
+        role,
+      },
+    });
+
+  emitNotification(
+    req,
+    notification
+  );
 
     // -------------------------------------------------
     // CREATE ACTIVITY

@@ -112,6 +112,70 @@ io.on("connection", (socket) => {
   );
 
 
+
+  // ================================
+  // ORGANIZATION CHAT
+  // ================================
+
+  socket.on(
+    "join-organization",
+    ({ organizationId }) => {
+
+      if (!organizationId) {
+        return;
+      }
+
+      const room =
+        `organization:${organizationId}`;
+
+      socket.join(room);
+
+      console.log(
+        `${socket.id} joined ${room}`
+      );
+
+    }
+  );
+
+
+  socket.on(
+    "leave-organization",
+    ({ organizationId }) => {
+
+      if (!organizationId) {
+        return;
+      }
+
+      const room =
+        `organization:${organizationId}`;
+
+      socket.leave(room);
+
+      console.log(
+        `${socket.id} left ${room}`
+      );
+
+    }
+  );
+
+  socket.on(
+  "join-user",
+  (userId) => {
+    if (!userId) {
+      return;
+    }
+
+    socket.join(
+      `user:${userId}`
+    );
+
+    console.log(
+      `${socket.id} joined user:${userId}`
+    );
+  }
+);
+
+
   // ================================
   // DISCONNECT
   // ================================

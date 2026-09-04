@@ -14,6 +14,7 @@ import {
   Plus,
   LogOut,
   Users,
+  User,
 } from "lucide-react";
 
 import {
@@ -303,24 +304,24 @@ const Sidebar = ({
       badge: 3,
     },
 
-    {
-      label: "Analytics",
-      icon: BarChart3,
-      path: "/analytics",
-    },
+    // {
+    //   label: "Analytics",
+    //   icon: BarChart3,
+    //   path: "/analytics",
+    // },
 
-    {
-      label: "Activity",
-      icon: Activity,
-      path: "/activity",
-    },
+    // {
+    //   label: "Activity",
+    //   icon: Activity,
+    //   path: "/activity",
+    // },
   ];
 
 
   const bottomNavigation = [
     {
-      label: "Settings",
-      icon: Settings,
+      label: "Account Settings",
+      icon: User,
       path: "/settings",
     },
   ];

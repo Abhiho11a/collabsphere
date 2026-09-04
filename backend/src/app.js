@@ -18,6 +18,14 @@ const messageRoutes = require("./routes/messageRoutes");
 const organizationRoutes = require("./routes/organizationRoutes");
 const organizationMemberRoutes = require("./routes/organizationMemberRoutes");
 const conversationRoutes = require("./routes/conversationRoutes");
+const organizationChatRoutes = require("./routes/organizationChatRoutes");
+
+const notificationRoutes =
+  require(
+    "./routes/notificationRoutes"
+  );
+
+  
 const superAdminRoutes =
   require("./routes/superAdminRoutes");
 
@@ -95,6 +103,18 @@ app.use(
 
 app.use("/api", messageRoutes);
 
+app.use(
+  "/api/organization-chat",
+  organizationChatRoutes
+);
+
+
+
+
+app.use(
+  "/api/notifications",
+  notificationRoutes
+);
 
 
 

@@ -39,6 +39,14 @@ const messageSchema = new mongoose.Schema(
       index: true,
     },
 
+    organization: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Organization",
+      default: null,
+      index: true,
+    },
+
+
     receiver: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -85,25 +93,61 @@ const messageSchema = new mongoose.Schema(
     // -------------------------------------------------
 
     attachments: [
+    {
+      name: {
+        type: String,
+        trim: true,
+      },
+
+      url: {
+        type: String,
+        trim: true,
+      },
+
+      publicId: {
+        type: String,
+        trim: true,
+        default: "",
+      },
+
+      resourceType: {
+        type: String,
+        trim: true,
+        default: "auto",
+      },
+
+      mimeType: {
+        type: String,
+        trim: true,
+        default: "",
+      },
+
+      size: {
+        type: Number,
+        default: 0,
+      },
+    },
+  ],
+
+    // -------------------------------------------------
+    // EMOJI REACTIONS
+    // Works for organization, project and individual chat.
+    // -------------------------------------------------
+
+    reactions: [
       {
-        name: {
+        emoji: {
           type: String,
+          required: true,
           trim: true,
         },
 
-        url: {
-          type: String,
-          trim: true,
-        },
-
-        type: {
-          type: String,
-          trim: true,
-        },
-
-        size: {
-          type: Number,
-        },
+        users: [
+          {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+          },
+        ],
       },
     ],
 

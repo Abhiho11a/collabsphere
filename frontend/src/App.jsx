@@ -34,6 +34,7 @@ import Chat from "./pages/Chat";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import Notifications from "./pages/Notifications";
 
 
 const App = () => {
@@ -207,9 +208,7 @@ const App = () => {
           <Route
             path="/notifications"
             element={
-              <PlaceholderPage
-                title="Notifications"
-              />
+              <Notifications />
             }
           />
 
