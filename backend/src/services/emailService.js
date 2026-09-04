@@ -1,19 +1,32 @@
-const { Resend } = require("resend");
+const { BrevoClient } = require("@getbrevo/brevo");
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const brevo = new BrevoClient({
+  apiKey: process.env.BREVO_API_KEY,
+});
+
+const sender = {
+  name: process.env.EMAIL_FROM_NAME || "COLLABSPHERE",
+  email: process.env.EMAIL_FROM,
+};
 
 const sendVerificationEmail = async (
   email,
   name,
   verificationUrl
 ) => {
-  await resend.emails.send({
-    from: process.env.EMAIL_FROM,
-    to: email,
+  await brevo.transactionalEmails.sendTransacEmail({
+    sender,
+
+    to: [
+      {
+        email,
+        name,
+      },
+    ],
 
     subject: "Verify your COLLABSPHERE account",
 
-    text: `
+    textContent: `
 Hello ${name},
 
 Welcome to COLLABSPHERE.
@@ -27,7 +40,7 @@ This link expires in 24 hours.
 If you did not create this account, you can ignore this email.
 `,
 
-    html: `
+    htmlContent: `
       <div style="font-family: Arial, sans-serif;">
         <h2>Welcome to COLLABSPHERE</h2>
 
@@ -70,13 +83,19 @@ const sendPasswordResetEmail = async (
   name,
   resetUrl
 ) => {
-  await resend.emails.send({
-    from: process.env.EMAIL_FROM,
-    to: email,
+  await brevo.transactionalEmails.sendTransacEmail({
+    sender,
+
+    to: [
+      {
+        email,
+        name,
+      },
+    ],
 
     subject: "Reset your COLLABSPHERE password",
 
-    text: `
+    textContent: `
 Hello ${name},
 
 We received a request to reset your COLLABSPHERE password.
@@ -90,7 +109,7 @@ This link expires in 15 minutes.
 If you did not request a password reset, you can safely ignore this email.
 `,
 
-    html: `
+    htmlContent: `
       <div style="font-family: Arial, sans-serif;">
         <h2>Reset your COLLABSPHERE password</h2>
 

@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@getbrevo/brevo": "^6.0.3",
     "@hocuspocus/extension-database": "^4.6.0",
     "@hocuspocus/extension-logger": "^4.6.0",
     "@hocuspocus/server": "^4.6.0",
