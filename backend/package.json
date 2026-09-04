@@ -17,6 +17,7 @@
     "multer": "^2.3.0",
     "nodemailer": "^9.0.6",
     "openid-client": "^6.8.7",
+    "resend": "^6.26.0",
     "socket.io": "^4.8.3",
     "yjs": "^13.6.32"
   },
@@ -28,17 +29,17 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-  "start": "node src/server.js",
-  "start:collaboration": "node src/collaborationServer.js",
-  "dev": "nodemon src/server.js",
-  "dev:collaboration": "nodemon src/collaborationServer.js",
-  "migrate:organizations": "node scripts/migrateWorkspacesToOrganizations.js"
-},
+    "start": "node src/server.js",
+    "start:collaboration": "node src/collaborationServer.js",
+    "dev": "nodemon src/server.js",
+    "dev:collaboration": "nodemon src/collaborationServer.js",
+    "migrate:organizations": "node scripts/migrateWorkspacesToOrganizations.js"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "engines": {
-  "node": ">=22 <25"
-},
+    "node": ">=22 <25"
+  },
   "type": "commonjs"
 }
