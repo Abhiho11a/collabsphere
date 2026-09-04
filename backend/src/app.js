@@ -5,7 +5,7 @@ const path = require("path");
 
 const authRoutes = require("./routes/authRoutes");
 const workspaceRoutes = require("./routes/workspaceRoutes");
-const workspaceMemberRoutes = require("./routes/WorkspaceMemberRoutes");
+const workspaceMemberRoutes = require("./routes/workspaceMemberRoutes");
 const projectRoutes = require("./routes/projectRoutes");
 const projectMemberRoutes = require("./routes/projectMemberRoutes");
 const projectFileRoutes = require("./routes/projectFileRoutes");
