@@ -5,7 +5,7 @@ const {
   getOrganizationFiles,
   uploadOrganizationFile,
   deleteOrganizationFile,
-} = require("../controllers/fileController");
+} = require("../controllers/filecontroller");
 
 const {
   protect,
