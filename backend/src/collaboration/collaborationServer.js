@@ -318,7 +318,9 @@ const collaborationServer =
   new HocuspocusServer({
 
     port:
-      Number(process.env.COLLABORATION_PORT) || 1234,
+      Number(process.env.PORT) ||
+      Number(process.env.COLLABORATION_PORT) ||
+      1234,
 
     extensions: [
       new Database({
